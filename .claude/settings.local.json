@@ -28,7 +28,17 @@
       "Bash(touch tests/__init__.py tests/unit/__init__.py tests/integration/__init__.py)",
       "Bash(.venv/bin/pytest -q)",
       "Bash(.venv/bin/pytest tests/unit/test_config.py::TestProductionHardening::test_default_secret_is_rejected_in_production -q)",
-      "Bash(.venv/bin/pytest tests/unit/test_config.py -q)"
+      "Bash(.venv/bin/pytest tests/unit/test_config.py -q)",
+      "Bash(chflags -R nohidden .venv)",
+      "Bash(PYTHONPATH=src .venv/bin/alembic revision --autogenerate -m \"create users and refresh tokens\")",
+      "Bash(PYTHONPATH=src .venv/bin/alembic downgrade base)",
+      "Bash(psql -U truvix -d truvix -tc \"SELECT tablename FROM pg_tables WHERE schemaname='public'\")",
+      "Bash(psql -U truvix -d truvix -tc \"SELECT typname FROM pg_type WHERE typname IN \\('user_status','subscription_tier'\\)\")",
+      "Bash(PYTHONPATH=src .venv/bin/alembic upgrade head)",
+      "Bash(psql -U truvix -d truvix -tc \"SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename\")",
+      "Bash(PYTHONPATH=src .venv/bin/alembic check)",
+      "Bash(.venv/bin/pytest tests/integration/test_auth.py -q)",
+      "Bash(.venv/bin/pytest -q -p no:warnings)"
     ]
   }
 }

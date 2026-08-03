@@ -1,0 +1,87 @@
+"""Persistence model for refresh token sessions.
+
+Each row is one issued refresh token, keyed by the ``jti`` embedded in the JWT.
+Rotation links tokens into a chain, which is what makes stolen-token detection
+possible: presenting an already-rotated token proves two parties hold the same
+credential, so the whole chain is revoked.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import DateTime, ForeignKey, Index, String, text
+from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from truvix.shared.database import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from truvix.modules.users.models import User
+
+USER_AGENT_MAX_LENGTH = 400
+
+
+class RefreshToken(Base, TimestampMixin):
+    """A single issued refresh token and its rotation state."""
+
+    __tablename__ = "refresh_tokens"
+    __table_args__ = (
+        # Revoking a chain and listing a user's sessions both scan by user; the
+        # partial predicate keeps the index to tokens that can still be used.
+        Index(
+            "ix_refresh_tokens_user_id_active",
+            "user_id",
+            postgresql_where=text("revoked_at IS NULL"),
+        ),
+        # Supports the scheduled purge of tokens that are past their usefulness.
+        Index("ix_refresh_tokens_expires_at", "expires_at"),
+    )
+
+    # The token's jti claim, so a presented JWT maps straight to its row.
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Set when this token is rotated, forming the chain used for reuse detection.
+    replaced_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("refresh_tokens.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # Captured so a user can recognise and revoke an unfamiliar session.
+    user_agent: Mapped[str | None] = mapped_column(String(USER_AGENT_MAX_LENGTH))
+    ip_address: Mapped[str | None] = mapped_column(INET)
+
+    user: Mapped[User] = relationship(back_populates="refresh_tokens")
+
+    @property
+    def is_revoked(self) -> bool:
+        """Whether the token has been explicitly invalidated."""
+        return self.revoked_at is not None
+
+    def is_expired(self, *, now: datetime) -> bool:
+        """Whether the token is past its expiry.
+
+        Args:
+            now: The current time, supplied so callers control the clock.
+        """
+        return self.expires_at <= now
+
+    def is_usable(self, *, now: datetime) -> bool:
+        """Whether the token may still be exchanged for a new pair.
+
+        Args:
+            now: The current time, supplied so callers control the clock.
+        """
+        return not self.is_revoked and not self.is_expired(now=now)
+
+    def __repr__(self) -> str:
+        return f"RefreshToken(id={self.id!r}, user_id={self.user_id!r}, revoked={self.is_revoked})"

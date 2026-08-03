@@ -7,6 +7,7 @@ from truvix.shared.database.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     new_id,
+    pg_enum,
     utc_now,
 )
 from truvix.shared.database.engine import (
@@ -25,5 +26,6 @@ __all__ = [
     "create_engine",
     "create_session_factory",
     "new_id",
+    "pg_enum",
     "utc_now",
 ]

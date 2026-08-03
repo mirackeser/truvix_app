@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Deterministic constraint names, required for reversible Alembic migrations.
@@ -36,6 +38,27 @@ def new_id() -> uuid.UUID:
 def utc_now() -> datetime:
     """Return the current time as a timezone-aware UTC datetime."""
     return datetime.now(UTC)
+
+
+def pg_enum[EnumT: StrEnum](enum_class: type[EnumT], *, name: str) -> SQLEnum:
+    """Build a native PostgreSQL enum column type from a ``StrEnum``.
+
+    SQLAlchemy stores enum *names* by default, so ``UserStatus.ACTIVE`` would be
+    written as ``ACTIVE`` while a Python-side default of ``"active"`` would be
+    rejected. Storing the member values instead keeps the database labels and
+    the Python values identical, which also makes raw SQL readable.
+
+    Args:
+        enum_class: The ``StrEnum`` to map.
+        name: Name of the PostgreSQL type to create.
+    """
+    return SQLEnum(
+        enum_class,
+        name=name,
+        native_enum=True,
+        validate_strings=True,
+        values_callable=lambda members: [member.value for member in members],
+    )
 
 
 class Base(DeclarativeBase):

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from truvix.modules.auth.router import router as auth_router
+
 
 def build_api_v1_router() -> APIRouter:
     """Build the router carrying every version 1 endpoint.
@@ -16,4 +18,6 @@ def build_api_v1_router() -> APIRouter:
     Returns:
         A router intended to be mounted under the configured v1 prefix.
     """
-    return APIRouter()
+    router = APIRouter()
+    router.include_router(auth_router)
+    return router
