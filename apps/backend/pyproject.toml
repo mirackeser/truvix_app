@@ -1,0 +1,117 @@
+[project]
+name = "truvix-backend"
+version = "0.1.0"
+description = "Truvix AI Vehicle Intelligence Platform - Backend API"
+requires-python = ">=3.14"
+license = { text = "Proprietary" }
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "email-validator>=2.2",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "structlog>=24.4",
+    "argon2-cffi>=23.1",
+    "pyjwt>=2.10",
+    "redis>=5.2",
+    "httpx>=0.28",
+    "python-multipart>=0.0.20",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["truvix*"]
+
+# ---------------------------------------------------------------------------
+# Ruff - linting and formatting
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "TID",  # flake8-tidy-imports
+    "RUF",  # ruff-specific
+    "ASYNC",# flake8-async
+    "S",    # flake8-bandit (security)
+    "T20",  # flake8-print (no stray print statements)
+]
+ignore = [
+    "S101",  # assert is legitimate inside tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]  # hardcoded test credentials are intentional
+
+[tool.ruff.lint.isort]
+known-first-party = ["truvix"]
+
+# ---------------------------------------------------------------------------
+# mypy - static type checking
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["truvix"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Resolve the package from the source tree directly. macOS marks dot-directories
+# hidden, and Python 3.13+ ignores hidden .pth files, so an editable install
+# cannot be relied on to put "src" on sys.path here.
+pythonpath = ["src"]
+asyncio_mode = "auto"
+addopts = "--strict-markers --strict-config"
+markers = [
+    "integration: tests requiring a live PostgreSQL database",
+]
+
+[tool.coverage.run]
+source = ["src/truvix"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@abstractmethod",
+]

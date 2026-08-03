@@ -1,0 +1,53 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.python-version
+
+# --- Testing & coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Environment & secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Node ---
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# --- Xcode / iOS ---
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+.swiftpm/
+
+# --- Editors & OS ---
+.DS_Store
+.idea/
+*.swp
+
+# --- Local runtime artifacts ---
+logs/
+*.log
+storage/
+tmp/
+
+# --- Legacy scaffold retained for reference only ---
+_legacy/

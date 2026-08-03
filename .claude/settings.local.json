@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/mirackeser/Downloads/**)",
+      "Bash(hdiutil attach *)",
+      "Bash(ls -la \"/Volumes/Purge 1\" 2>&1)",
+      "Bash(/usr/libexec/PlistBuddy -c \"Print\" \"/Volumes/Purge 1/Purge.app/Contents/Info.plist\")",
+      "Bash(python3 -c ' *)",
+      "Bash(hdiutil detach *)",
+      "WebSearch",
+      "Bash(docker --version)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/python -m pip install --quiet --upgrade pip)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(.venv/bin/python -c \"import fastapi, sqlalchemy, pydantic, structlog, jwt, argon2, asyncpg, alembic; print\\('fastapi', fastapi.__version__\\); print\\('sqlalchemy', sqlalchemy.__version__\\); print\\('pydantic', pydantic.__version__\\)\")",
+      "Bash(.venv/bin/python -c \"import uuid; print\\('uuid7' if hasattr\\(uuid,'uuid7'\\) else 'no uuid7'\\); print\\(uuid.uuid7\\(\\) if hasattr\\(uuid,'uuid7'\\) else ''\\)\")",
+      "Bash(.venv/bin/python -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(.venv/bin/ruff --version)",
+      "Bash(.venv/bin/mypy --version)",
+      "Bash(.venv/bin/ruff check *)",
+      "Bash(.venv/bin/mypy --python-version 3.14 /tmp/rt.py)",
+      "Bash(.venv/bin/ruff format *)",
+      "Bash(.venv/bin/mypy)",
+      "Bash(.venv/bin/python -)",
+      "Bash(xattr -l .venv/lib/python3.14/site-packages/__editable__.truvix_backend-0.1.0.pth)",
+      "Bash(python3 -)",
+      "Bash(touch tests/__init__.py tests/unit/__init__.py tests/integration/__init__.py)",
+      "Bash(.venv/bin/pytest -q)",
+      "Bash(.venv/bin/pytest tests/unit/test_config.py::TestProductionHardening::test_default_secret_is_rejected_in_production -q)",
+      "Bash(.venv/bin/pytest tests/unit/test_config.py -q)"
+    ]
+  }
+}
