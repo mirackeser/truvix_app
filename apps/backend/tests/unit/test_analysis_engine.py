@@ -15,7 +15,7 @@ from truvix.modules.analysis.engine import (
     risk_level_for,
 )
 from truvix.modules.analysis.models import FindingSeverity, PhotoKind, RiskLevel
-from truvix.modules.vehicles.models import FuelType, Transmission, Vehicle
+from truvix.modules.vehicles.models import Currency, FuelType, Transmission, Vehicle
 
 
 def _vehicle(**overrides: object) -> Vehicle:
@@ -28,6 +28,7 @@ def _vehicle(**overrides: object) -> Vehicle:
         "fuel_type": FuelType.PETROL,
         "transmission": Transmission.AUTOMATIC,
         "asking_price": Decimal("1250000.00"),
+        "currency": Currency.TRY,
     }
     values.update(overrides)
     return Vehicle(**values)

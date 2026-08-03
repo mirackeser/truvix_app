@@ -19,6 +19,7 @@ from truvix.modules.analysis.models import (
     VehicleAnalysis,
 )
 from truvix.modules.auth.models import RefreshToken
+from truvix.modules.copilot.models import CopilotConversation, CopilotMessage, MessageRole
 from truvix.modules.users.models import SubscriptionTier, User, UserStatus
 from truvix.modules.vehicles.models import (
     BodyType,
@@ -42,11 +43,14 @@ __all__ = [
     "BodyType",
     "Collection",
     "CollectionItem",
+    "CopilotConversation",
+    "CopilotMessage",
     "Currency",
     "FindingCategory",
     "FindingSeverity",
     "FuelType",
     "ListingSource",
+    "MessageRole",
     "PhotoKind",
     "PriceSnapshot",
     "PriceSource",

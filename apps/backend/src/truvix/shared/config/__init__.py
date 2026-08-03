@@ -1,6 +1,7 @@
 """Configuration primitives for the Truvix backend."""
 
 from truvix.shared.config.settings import (
+    AISettings,
     DatabaseSettings,
     Environment,
     LogFormat,
@@ -15,6 +16,7 @@ from truvix.shared.config.settings import (
 )
 
 __all__ = [
+    "AISettings",
     "DatabaseSettings",
     "Environment",
     "LogFormat",

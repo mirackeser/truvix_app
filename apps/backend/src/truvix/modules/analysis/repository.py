@@ -13,7 +13,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from truvix.modules.analysis.models import AnalysisPhoto, RiskFinding, VehicleAnalysis
+from truvix.modules.analysis.models import (
+    AnalysisPhoto,
+    AnalysisStatus,
+    RiskFinding,
+    VehicleAnalysis,
+)
 from truvix.modules.vehicles.models import Vehicle
 from truvix.shared.pagination import PageParams
 
@@ -91,6 +96,31 @@ class AnalysisRepository:
         )
         result = await self._session.scalars(listing)
         return result.all(), int(total or 0)
+
+    async def latest_completed_for_vehicle(
+        self, *, owner_id: uuid.UUID, vehicle_id: uuid.UUID
+    ) -> VehicleAnalysis | None:
+        """Fetch the newest completed analysis of one of the owner's vehicles.
+
+        Args:
+            owner_id: The account the analysis must belong to.
+            vehicle_id: The vehicle whose latest report to read.
+        """
+        statement = (
+            select(VehicleAnalysis)
+            .join(Vehicle, VehicleAnalysis.vehicle_id == Vehicle.id)
+            .where(
+                VehicleAnalysis.vehicle_id == vehicle_id,
+                VehicleAnalysis.status == AnalysisStatus.COMPLETED,
+                Vehicle.user_id == owner_id,
+                Vehicle.deleted_at.is_(None),
+            )
+            .options(selectinload(VehicleAnalysis.findings))
+            .order_by(VehicleAnalysis.completed_at.desc())
+            .limit(1)
+        )
+        analysis: VehicleAnalysis | None = await self._session.scalar(statement)
+        return analysis
 
     async def photo_for_owner(
         self, *, owner_id: uuid.UUID, analysis_id: uuid.UUID, photo_id: uuid.UUID

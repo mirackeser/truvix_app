@@ -13,6 +13,7 @@ from typing import Self
 from redis.asyncio import ConnectionPool, Redis
 from redis.exceptions import RedisError
 
+from truvix.shared.ai import ChatModel, OpenAIChatModel
 from truvix.shared.config import Settings
 from truvix.shared.database import Database
 from truvix.shared.logging import get_logger
@@ -44,6 +45,11 @@ class ApplicationContainer:
         self._password_hasher = PasswordHasherService(settings.security)
         self._token_service = TokenService(settings.security)
         self._file_storage = LocalFileStorage(settings.storage.root_dir)
+        # Public and reassignable on purpose: tests substitute a deterministic
+        # fake, and None simply means AI features are disabled.
+        self.chat_model: ChatModel | None = (
+            OpenAIChatModel(settings.ai) if settings.ai.enabled else None
+        )
 
     @property
     def settings(self) -> Settings:
@@ -91,6 +97,8 @@ class ApplicationContainer:
 
     async def aclose(self) -> None:
         """Release every held resource. Safe to call once during shutdown."""
+        if isinstance(self.chat_model, OpenAIChatModel):
+            await self.chat_model.aclose()
         await self._redis.aclose()
         await self._redis_pool.disconnect()
         await self._database.dispose()

@@ -14,7 +14,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Self
 
-from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, model_validator
+from pydantic import Field, HttpUrl, PostgresDsn, RedisDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _MIN_SECRET_LENGTH = 32
@@ -140,6 +140,34 @@ class StorageSettings(BaseSettings):
     max_photos_per_analysis: Annotated[int, Field(ge=1, le=50)] = 12
 
 
+class AISettings(BaseSettings):
+    """AI provider configuration.
+
+    Leaving ``api_key`` unset disables AI features cleanly: analyses fall back
+    to the rule-based engine and the copilot reports itself unavailable, rather
+    than the application failing to start.
+    """
+
+    model_config = _group_config("TRUVIX_AI_")
+
+    api_key: SecretStr | None = Field(
+        default=None,
+        description="OpenAI API key. Absent means AI features are disabled.",
+    )
+    base_url: HttpUrl = Field(default=HttpUrl("https://api.openai.com/v1"))
+    model: str = "gpt-4o-mini"
+    temperature: Annotated[float, Field(ge=0, le=2)] = 0.3
+    max_output_tokens: Annotated[int, Field(ge=64, le=16_384)] = 1024
+    request_timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 30.0
+    copilot_messages_per_minute: Annotated[int, Field(ge=1, le=100)] = 10
+    copilot_history_window: Annotated[int, Field(ge=2, le=50)] = 12
+
+    @property
+    def enabled(self) -> bool:
+        """Whether a provider is configured."""
+        return self.api_key is not None
+
+
 class ObservabilitySettings(BaseSettings):
     """Logging and telemetry configuration."""
 
@@ -168,6 +196,7 @@ class Settings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    ai: AISettings = Field(default_factory=AISettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
 
     @property
