@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Annotated, Self
 
+from fastapi import Depends, Query
 from pydantic import BaseModel, Field, computed_field
 
 DEFAULT_PAGE_SIZE = 20
@@ -38,6 +39,24 @@ class PageParams(BaseModel):
     def limit(self) -> int:
         """Maximum number of rows the underlying query may return."""
         return self.page_size
+
+
+def _page_params(
+    page: Annotated[int, Query(ge=1, description="One-based page number.")] = 1,
+    page_size: Annotated[
+        int,
+        Query(ge=1, le=MAX_PAGE_SIZE, description=f"Items per page, at most {MAX_PAGE_SIZE}."),
+    ] = DEFAULT_PAGE_SIZE,
+) -> PageParams:
+    """Read pagination query parameters into a ``PageParams``.
+
+    Declared as an explicit dependency because FastAPI does not reliably expand
+    a Pydantic model into individual query parameters across versions.
+    """
+    return PageParams(page=page, page_size=page_size)
+
+
+PageParamsDep = Annotated[PageParams, Depends(_page_params)]
 
 
 class Page[ItemT](BaseModel):

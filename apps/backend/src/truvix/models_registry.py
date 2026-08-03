@@ -10,12 +10,36 @@ from __future__ import annotations
 
 from truvix.modules.auth.models import RefreshToken
 from truvix.modules.users.models import SubscriptionTier, User, UserStatus
+from truvix.modules.vehicles.models import (
+    BodyType,
+    Collection,
+    CollectionItem,
+    Currency,
+    FuelType,
+    ListingSource,
+    PriceSnapshot,
+    PriceSource,
+    SellerType,
+    Transmission,
+    Vehicle,
+)
 from truvix.shared.database import Base
 
 __all__ = [
     "Base",
+    "BodyType",
+    "Collection",
+    "CollectionItem",
+    "Currency",
+    "FuelType",
+    "ListingSource",
+    "PriceSnapshot",
+    "PriceSource",
     "RefreshToken",
+    "SellerType",
     "SubscriptionTier",
+    "Transmission",
     "User",
     "UserStatus",
+    "Vehicle",
 ]

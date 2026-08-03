@@ -38,7 +38,15 @@
       "Bash(psql -U truvix -d truvix -tc \"SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename\")",
       "Bash(PYTHONPATH=src .venv/bin/alembic check)",
       "Bash(.venv/bin/pytest tests/integration/test_auth.py -q)",
-      "Bash(.venv/bin/pytest -q -p no:warnings)"
+      "Bash(.venv/bin/pytest -q -p no:warnings)",
+      "Bash(PYTHONPATH=src .venv/bin/alembic revision --autogenerate -m \"create vehicles price snapshots and collections\")",
+      "Bash(psql -U truvix -d truvix -tc \"SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY 1\")",
+      "Bash(psql -U truvix -d truvix -tc \"SELECT typname FROM pg_type WHERE typname IN \\('fuel_type','transmission','body_type','listing_source','seller_type','currency','price_source','user_status','subscription_tier'\\)\")",
+      "Bash(.venv/bin/pytest tests/integration/test_vehicles.py -q -p no:warnings)",
+      "Bash(.venv/bin/pytest \"tests/integration/test_vehicles.py::TestReadingAndUpdating::test_marking_a_favourite\" -q -p no:warnings)",
+      "Bash(.venv/bin/pytest \"tests/integration/test_vehicles.py::TestGarageFilters::test_pagination_reports_the_full_total\" -q -p no:warnings)",
+      "Bash(sed -i '' 's|\"email\":\"a@b.co\"|\"email\":\"kerem@truvix.app\"|' /tmp/probe.py)",
+      "Bash(.venv/bin/python /tmp/probe.py)"
     ]
   }
 }

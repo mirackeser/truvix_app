@@ -22,6 +22,10 @@ PASSWORD_MAX_LENGTH = 128
 
 FULL_NAME_MIN_LENGTH = 2
 
+# Below this length an email's local part is too generic to treat as a secret
+# fragment; checking it would reject ordinary passwords for no benefit.
+MIN_EMAIL_LOCAL_PART_FOR_REUSE_CHECK = 4
+
 _E164_PATTERN = r"^\+[1-9]\d{7,14}$"
 
 PasswordStr = Annotated[str, Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)]
@@ -50,9 +54,16 @@ class RegistrationRequest(BaseModel):
 
     @model_validator(mode="after")
     def _reject_password_containing_email(self) -> Self:
-        """Reject passwords built from the account's own address."""
+        """Reject passwords built from the account's own address.
+
+        Very short local parts are skipped: someone whose address is ``a@x.com``
+        would otherwise be unable to choose any password containing the letter
+        "a", which is a usability failure rather than a security gain.
+        """
         local_part = self.email.split("@", 1)[0].lower()
-        if local_part and local_part in self.password.lower():
+        if len(local_part) < MIN_EMAIL_LOCAL_PART_FOR_REUSE_CHECK:
+            return self
+        if local_part in self.password.lower():
             raise ValueError("Password must not contain your email address.")
         return self
 

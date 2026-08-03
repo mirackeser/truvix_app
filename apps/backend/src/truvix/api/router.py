@@ -10,6 +10,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from truvix.modules.auth.router import router as auth_router
+from truvix.modules.vehicles.router import collections_router
+from truvix.modules.vehicles.router import router as vehicles_router
 
 
 def build_api_v1_router() -> APIRouter:
@@ -20,4 +22,6 @@ def build_api_v1_router() -> APIRouter:
     """
     router = APIRouter()
     router.include_router(auth_router)
+    router.include_router(vehicles_router)
+    router.include_router(collections_router)
     return router

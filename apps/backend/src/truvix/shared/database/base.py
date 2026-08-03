@@ -66,6 +66,13 @@ class Base(DeclarativeBase):
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
+    # Fetch database-generated values with RETURNING during the flush that
+    # writes them. Without this, a column such as ``updated_at`` is left expired
+    # after an UPDATE, and reading it from a response serialiser would attempt
+    # database IO from synchronous code — which fails outright under asyncio.
+    # PostgreSQL supports RETURNING, so this costs no extra round trip.
+    __mapper_args__ = {"eager_defaults": True}  # noqa: RUF012 - SQLAlchemy mapper contract
+
 
 class UUIDPrimaryKeyMixin:
     """Adds a UUIDv7 primary key named ``id``."""
