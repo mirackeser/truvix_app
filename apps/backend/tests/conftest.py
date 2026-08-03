@@ -8,7 +8,9 @@ constraint violations, transaction semantics and dialect-specific behaviour.
 from __future__ import annotations
 
 import os
+import tempfile
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -23,6 +25,7 @@ from truvix.shared.config import (
     RedisSettings,
     SecuritySettings,
     Settings,
+    StorageSettings,
 )
 from truvix.shared.container import ApplicationContainer
 from truvix.shared.database import Base
@@ -32,6 +35,7 @@ TEST_DATABASE_DSN = os.getenv(
     "postgresql+asyncpg://truvix:truvix@localhost:5432/truvix_test",
 )
 TEST_REDIS_DSN = os.getenv("TRUVIX_TEST_REDIS_DSN", "redis://localhost:6379/15")
+TEST_STORAGE_DIR = Path(tempfile.mkdtemp(prefix="truvix-test-storage-"))
 
 # Argon2 parameters are lowered to their configured minimum so that tests which
 # hash passwords stay fast; production values are set through the environment.
@@ -55,6 +59,7 @@ def settings() -> Settings:
             dsn=TEST_DATABASE_DSN, pool_size=5, max_overflow=5, _env_file=None
         ),
         redis=RedisSettings(dsn=TEST_REDIS_DSN, _env_file=None),
+        storage=StorageSettings(root_dir=TEST_STORAGE_DIR, _env_file=None),
         security=SecuritySettings(
             secret_key="test-signing-key-that-is-long-enough-for-hs256",
             argon2_time_cost=_TEST_ARGON2_TIME_COST,

@@ -8,6 +8,16 @@ mistake impossible.
 
 from __future__ import annotations
 
+from truvix.modules.analysis.models import (
+    AnalysisPhoto,
+    AnalysisStatus,
+    FindingCategory,
+    FindingSeverity,
+    PhotoKind,
+    RiskFinding,
+    RiskLevel,
+    VehicleAnalysis,
+)
 from truvix.modules.auth.models import RefreshToken
 from truvix.modules.users.models import SubscriptionTier, User, UserStatus
 from truvix.modules.vehicles.models import (
@@ -26,20 +36,28 @@ from truvix.modules.vehicles.models import (
 from truvix.shared.database import Base
 
 __all__ = [
+    "AnalysisPhoto",
+    "AnalysisStatus",
     "Base",
     "BodyType",
     "Collection",
     "CollectionItem",
     "Currency",
+    "FindingCategory",
+    "FindingSeverity",
     "FuelType",
     "ListingSource",
+    "PhotoKind",
     "PriceSnapshot",
     "PriceSource",
     "RefreshToken",
+    "RiskFinding",
+    "RiskLevel",
     "SellerType",
     "SubscriptionTier",
     "Transmission",
     "User",
     "UserStatus",
     "Vehicle",
+    "VehicleAnalysis",
 ]

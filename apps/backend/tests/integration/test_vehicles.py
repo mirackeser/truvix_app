@@ -65,9 +65,7 @@ async def _save_vehicle(
     client: AsyncClient, headers: dict[str, str], **overrides: Any
 ) -> dict[str, Any]:
     """Save a vehicle and return the decoded response body."""
-    response = await client.post(
-        VEHICLES_URL, json=_vehicle_payload(**overrides), headers=headers
-    )
+    response = await client.post(VEHICLES_URL, json=_vehicle_payload(**overrides), headers=headers)
     assert response.status_code == _HTTP_CREATED, response.text
     body: dict[str, Any] = response.json()
     return body
@@ -401,18 +399,14 @@ class TestGarageFilters:
         assert body["total"] == 1
         assert body["items"][0]["vehicle"]["make"] == "BMW"
 
-    async def test_the_price_dropped_tab(
-        self, client: AsyncClient, owner: dict[str, str]
-    ) -> None:
+    async def test_the_price_dropped_tab(self, client: AsyncClient, owner: dict[str, str]) -> None:
         dropped = await _save_vehicle(client, owner)
         await _save_vehicle(client, owner, make="Audi", model="A4", plate="06 XYZ 456")
         await client.post(
             f"{VEHICLES_URL}/{dropped['id']}/prices", json={"price": "1225000.00"}, headers=owner
         )
 
-        response = await client.get(
-            VEHICLES_URL, params={"filter": "price_dropped"}, headers=owner
-        )
+        response = await client.get(VEHICLES_URL, params={"filter": "price_dropped"}, headers=owner)
 
         body = response.json()
         assert body["total"] == 1
@@ -426,9 +420,7 @@ class TestGarageFilters:
             f"{VEHICLES_URL}/{vehicle['id']}/prices", json={"price": "1300000.00"}, headers=owner
         )
 
-        response = await client.get(
-            VEHICLES_URL, params={"filter": "price_dropped"}, headers=owner
-        )
+        response = await client.get(VEHICLES_URL, params={"filter": "price_dropped"}, headers=owner)
 
         assert response.json()["total"] == 0
 

@@ -17,6 +17,7 @@ from truvix.shared.config import Settings
 from truvix.shared.database import Database
 from truvix.shared.logging import get_logger
 from truvix.shared.security import PasswordHasherService, TokenService
+from truvix.shared.storage import LocalFileStorage
 
 _logger = get_logger(__name__)
 
@@ -42,6 +43,7 @@ class ApplicationContainer:
         self._redis: Redis = Redis(connection_pool=self._redis_pool)
         self._password_hasher = PasswordHasherService(settings.security)
         self._token_service = TokenService(settings.security)
+        self._file_storage = LocalFileStorage(settings.storage.root_dir)
 
     @property
     def settings(self) -> Settings:
@@ -67,6 +69,11 @@ class ApplicationContainer:
     def token_service(self) -> TokenService:
         """The JWT issuing and verification service."""
         return self._token_service
+
+    @property
+    def file_storage(self) -> LocalFileStorage:
+        """The uploaded-file store."""
+        return self._file_storage
 
     async def ping_redis(self) -> bool:
         """Verify Redis is reachable.

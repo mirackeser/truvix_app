@@ -11,6 +11,7 @@ from __future__ import annotations
 import secrets
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Self
 
 from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, model_validator
@@ -126,6 +127,19 @@ class RateLimitSettings(BaseSettings):
     auth_endpoint_requests_per_minute: Annotated[int, Field(ge=1, le=1_000)] = 10
 
 
+class StorageSettings(BaseSettings):
+    """Uploaded-file storage configuration."""
+
+    model_config = _group_config("TRUVIX_STORAGE_")
+
+    root_dir: Path = Field(
+        default=Path("storage"),
+        description="Directory that holds every uploaded object.",
+    )
+    max_upload_bytes: Annotated[int, Field(ge=1024, le=100 * 1024 * 1024)] = 15 * 1024 * 1024
+    max_photos_per_analysis: Annotated[int, Field(ge=1, le=50)] = 12
+
+
 class ObservabilitySettings(BaseSettings):
     """Logging and telemetry configuration."""
 
@@ -153,6 +167,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = Field(default_factory=RedisSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
+    storage: StorageSettings = Field(default_factory=StorageSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
 
     @property

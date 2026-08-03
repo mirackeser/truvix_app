@@ -9,6 +9,7 @@ from truvix.shared.config.settings import (
     RedisSettings,
     SecuritySettings,
     Settings,
+    StorageSettings,
     generate_secret_key,
     get_settings,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "RedisSettings",
     "SecuritySettings",
     "Settings",
+    "StorageSettings",
     "generate_secret_key",
     "get_settings",
 ]
