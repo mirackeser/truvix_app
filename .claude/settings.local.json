@@ -62,7 +62,11 @@
       "Bash(.venv/bin/uv --version)",
       "Bash(.venv/bin/uv lock *)",
       "Bash(rm -rf /tmp/uvtest)",
-      "Bash(.venv/bin/uv sync *)"
+      "Bash(.venv/bin/uv sync *)",
+      "Bash(xcodebuild build *)",
+      "Bash(xcodebuild test *)",
+      "Bash(xcodebuild -list -project Truvix.xcodeproj)",
+      "Bash(xcrun simctl *)"
     ]
   }
 }

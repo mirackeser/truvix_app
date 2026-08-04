@@ -51,3 +51,8 @@ tmp/
 
 # --- Legacy scaffold retained for reference only ---
 _legacy/
+
+# Xcode
+xcuserdata/
+*.xcresult
+DerivedData/

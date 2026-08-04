@@ -1,0 +1,90 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WORKING_DIRECTORY: apps/ios
+  SCHEME: Truvix
+  DESTINATION: "platform=iOS Simulator,name=iPhone 17 Pro"
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.app/Contents/Developer
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # The live-backend suite skips itself when nothing answers on port 8000,
+      # so this job covers the unit suites. Contract tests against a real
+      # backend run in the backend workflow's environment, where Postgres and
+      # Redis are already provisioned.
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Truvix.xcodeproj \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify --renderer github-actions
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ios-test-results
+          path: ${{ env.WORKING_DIRECTORY }}/TestResults.xcresult
+          if-no-files-found: ignore
+
+  # Warnings are errors here rather than in the test job, so a warning fails
+  # the build without also hiding which test broke.
+  strict-build:
+    name: Build with warnings as errors
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.app/Contents/Developer
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Truvix.xcodeproj \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            GCC_TREAT_WARNINGS_AS_ERRORS=YES \
+            | xcbeautify --renderer github-actions
