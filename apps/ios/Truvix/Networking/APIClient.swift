@@ -15,8 +15,22 @@ struct APIRequest: Sendable {
     var path: String
     var query: [String: String] = [:]
     var body: (any Encodable & Sendable)?
+    /// A pre-encoded body, used for uploads that are not JSON.
+    var rawBody: (data: Data, contentType: String)?
     /// Whether the request must carry the session's access token.
     var requiresAuthentication = true
+
+    /// Build a request carrying a multipart form.
+    static func multipart(
+        path: String,
+        form: MultipartFormData
+    ) -> APIRequest {
+        APIRequest(
+            method: .post,
+            path: path,
+            rawBody: (form.finalised(), form.contentType)
+        )
+    }
 }
 
 /// Configuration the client needs to reach the backend.
@@ -186,7 +200,10 @@ actor APIClient {
         urlRequest.httpMethod = request.method.rawValue
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        if let body = request.body {
+        if let raw = request.rawBody {
+            urlRequest.setValue(raw.contentType, forHTTPHeaderField: "Content-Type")
+            urlRequest.httpBody = raw.data
+        } else if let body = request.body {
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
             urlRequest.httpBody = try JSONEncoder.truvix.encode(body)
         }

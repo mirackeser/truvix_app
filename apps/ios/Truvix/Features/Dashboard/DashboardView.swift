@@ -3,6 +3,7 @@ import SwiftUI
 /// The home screen: greeting, hero action, and one row per data section.
 struct DashboardView: View {
     @State private var model: DashboardModel
+    private let api: any TruvixAPI
     private let onStartAnalysis: () -> Void
     private let onOpenNotifications: () -> Void
 
@@ -12,6 +13,7 @@ struct DashboardView: View {
         onOpenNotifications: @escaping () -> Void
     ) {
         _model = State(wrappedValue: DashboardModel(api: api))
+        self.api = api
         self.onStartAnalysis = onStartAnalysis
         self.onOpenNotifications = onOpenNotifications
     }
@@ -170,7 +172,7 @@ struct DashboardView: View {
                 HStack(spacing: Theme.Spacing.sm) {
                     ForEach(analyses) { analysis in
                         NavigationLink {
-                            AnalysisDetailPlaceholder(summary: analysis)
+                            AnalysisReportView(analysisID: analysis.id, api: api)
                         } label: {
                             AnalysisCard(analysis: analysis)
                         }
@@ -509,38 +511,5 @@ struct StatusChip: View {
         case .failed: Theme.Colours.danger
         case .pending, .processing: Theme.Colours.warning
         }
-    }
-}
-
-/// Interim destination for a tapped analysis card.
-///
-/// The full report screen arrives with the analysis slice; this shows what is
-/// already known so the card is not a dead link in the meantime.
-struct AnalysisDetailPlaceholder: View {
-    let summary: AnalysisSummary
-
-    var body: some View {
-        VStack(spacing: Theme.Spacing.lg) {
-            if let score = summary.trustScore {
-                ScoreBadge(score: score, size: 96)
-            }
-            Text(summary.vehicleDisplayName)
-                .font(Theme.Typography.title)
-                .foregroundStyle(Theme.Colours.textPrimary)
-            if let level = summary.riskLevel {
-                Text(level.displayName)
-                    .font(Theme.Typography.callout)
-                    .foregroundStyle(Theme.Colours.brand)
-            }
-            Text("Ayrıntılı rapor ekranı yakında bu bölümde açılacak.")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colours.textSecondary)
-                .multilineTextAlignment(.center)
-            Spacer()
-        }
-        .padding(Theme.Spacing.lg)
-        .screenBackground()
-        .navigationTitle("Analiz")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }

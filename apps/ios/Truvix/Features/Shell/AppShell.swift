@@ -41,7 +41,7 @@ struct AppShell: View {
     let api: any TruvixAPI
 
     @State private var tab: AppTab = LaunchOverrides.initialTab ?? .home
-    @State private var isPresentingNewAnalysis = false
+    @State private var isPresentingNewAnalysis = LaunchOverrides.opensNewAnalysis
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -56,11 +56,7 @@ struct AppShell: View {
                 case .garage:
                     GarageView(api: api) { isPresentingNewAnalysis = true }
                 case .notifications:
-                    ComingSoonView(
-                        symbolName: "bell.badge",
-                        title: "Bildirimler",
-                        message: "Fırsatlar, riskler ve AI önerileri burada toplanacak."
-                    )
+                    NotificationsView(api: api)
                 case .profile:
                     ProfileView()
                 }
@@ -75,13 +71,7 @@ struct AppShell: View {
         }
         .screenBackground()
         .sheet(isPresented: $isPresentingNewAnalysis) {
-            ComingSoonView(
-                symbolName: "sparkles",
-                title: "Yeni Analiz",
-                message: "Analiz akışı bir sonraki adımda bu ekrana gelecek."
-            )
-            .presentationDetents([.medium])
-            .presentationBackground(Theme.Colours.background)
+            NewAnalysisView(api: api)
         }
     }
 }

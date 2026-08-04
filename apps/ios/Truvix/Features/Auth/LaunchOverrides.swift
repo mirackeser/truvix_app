@@ -35,9 +35,15 @@ enum LaunchOverrides {
         }
         return AppTab.allCases.first { "\($0)" == raw }
     }
+
+    /// Whether to open straight into the new-analysis sheet.
+    static var opensNewAnalysis: Bool {
+        UserDefaults.standard.bool(forKey: "truvixOpenNewAnalysis")
+    }
     #else
     static var automaticSignIn: (email: String, password: String)? { nil }
     static var skipsOnboarding: Bool { false }
     static var initialTab: AppTab? { nil }
+    static var opensNewAnalysis: Bool { false }
     #endif
 }

@@ -21,8 +21,35 @@ protocol TruvixAPI: Sendable {
     func setInComparison(_ isInComparison: Bool, vehicleID: UUID) async throws(APIError) -> Vehicle
     func deleteVehicle(id: UUID) async throws(APIError)
 
+    func createVehicle(_ request: VehicleCreateRequest) async throws(APIError) -> Vehicle
+
     func analyses(page: Int, pageSize: Int) async throws(APIError) -> Page<AnalysisSummary>
     func analysis(id: UUID) async throws(APIError) -> Analysis
+    func createAnalysis(vehicleID: UUID) async throws(APIError) -> Analysis
+    func uploadPhoto(
+        _ data: Data,
+        filename: String,
+        contentType: String,
+        kind: PhotoKind,
+        analysisID: UUID
+    ) async throws(APIError) -> AnalysisPhoto
+    func startAnalysis(id: UUID) async throws(APIError) -> Analysis
+
+    func notifications(
+        category: NotificationCategory?,
+        unreadOnly: Bool,
+        page: Int,
+        pageSize: Int
+    ) async throws(APIError) -> Page<AppNotification>
+    func notificationSummary() async throws(APIError) -> NotificationSummary
+    func markNotificationRead(id: UUID) async throws(APIError) -> AppNotification
+    func markAllNotificationsRead(
+        category: NotificationCategory?
+    ) async throws(APIError) -> MarkAllReadResult
+    func notificationPreferences() async throws(APIError) -> NotificationPreferences
+    func updateNotificationPreferences(
+        _ update: NotificationPreferencesUpdate
+    ) async throws(APIError) -> NotificationPreferences
 }
 
 /// The live implementation, talking to the backend through `APIClient`.
@@ -95,6 +122,100 @@ struct LiveTruvixAPI: TruvixAPI {
 
     func analysis(id: UUID) async throws(APIError) -> Analysis {
         try await client.send(APIRequest(path: "analyses/\(id.uuidString.lowercased())"))
+    }
+
+    func createVehicle(_ request: VehicleCreateRequest) async throws(APIError) -> Vehicle {
+        try await client.send(APIRequest(method: .post, path: "vehicles", body: request))
+    }
+
+    func createAnalysis(vehicleID: UUID) async throws(APIError) -> Analysis {
+        // The endpoint takes a form field rather than JSON, because the same
+        // router also accepts multipart uploads for the evidence step.
+        var form = MultipartFormData()
+        form.append(vehicleID.uuidString.lowercased(), name: "vehicle_id")
+        return try await client.send(APIRequest.multipart(path: "analyses", form: form))
+    }
+
+    func uploadPhoto(
+        _ data: Data,
+        filename: String,
+        contentType: String,
+        kind: PhotoKind,
+        analysisID: UUID
+    ) async throws(APIError) -> AnalysisPhoto {
+        var form = MultipartFormData()
+        form.append(kind.rawValue, name: "kind")
+        form.append(data, name: "file", filename: filename, contentType: contentType)
+        return try await client.send(
+            APIRequest.multipart(
+                path: "analyses/\(analysisID.uuidString.lowercased())/photos",
+                form: form
+            )
+        )
+    }
+
+    func startAnalysis(id: UUID) async throws(APIError) -> Analysis {
+        try await client.send(
+            APIRequest(method: .post, path: "analyses/\(id.uuidString.lowercased())/start")
+        )
+    }
+
+    // MARK: - Notifications
+
+    func notifications(
+        category: NotificationCategory?,
+        unreadOnly: Bool,
+        page: Int,
+        pageSize: Int
+    ) async throws(APIError) -> Page<AppNotification> {
+        var query = [
+            "page": String(page),
+            "page_size": String(pageSize),
+        ]
+        if let category {
+            query["category"] = category.rawValue
+        }
+        if unreadOnly {
+            query["unread_only"] = "true"
+        }
+        return try await client.send(APIRequest(path: "notifications", query: query))
+    }
+
+    func notificationSummary() async throws(APIError) -> NotificationSummary {
+        try await client.send(APIRequest(path: "notifications/summary"))
+    }
+
+    func markNotificationRead(id: UUID) async throws(APIError) -> AppNotification {
+        try await client.send(
+            APIRequest(
+                method: .post,
+                path: "notifications/\(id.uuidString.lowercased())/read"
+            )
+        )
+    }
+
+    func markAllNotificationsRead(
+        category: NotificationCategory?
+    ) async throws(APIError) -> MarkAllReadResult {
+        var query: [String: String] = [:]
+        if let category {
+            query["category"] = category.rawValue
+        }
+        return try await client.send(
+            APIRequest(method: .post, path: "notifications/read-all", query: query)
+        )
+    }
+
+    func notificationPreferences() async throws(APIError) -> NotificationPreferences {
+        try await client.send(APIRequest(path: "notifications/preferences"))
+    }
+
+    func updateNotificationPreferences(
+        _ update: NotificationPreferencesUpdate
+    ) async throws(APIError) -> NotificationPreferences {
+        try await client.send(
+            APIRequest(method: .patch, path: "notifications/preferences", body: update)
+        )
     }
 
     private func patchVehicle(

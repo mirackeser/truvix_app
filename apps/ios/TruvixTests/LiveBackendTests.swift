@@ -228,3 +228,183 @@ final class InMemoryTokenStore: TokenStoring, @unchecked Sendable {
     func save(_ pair: TokenPair) throws { stored = pair }
     func clear() { stored = nil }
 }
+
+// MARK: - The full analysis flow
+
+/// Drives the whole product loop against a live backend: create a vehicle,
+/// attach evidence, run the analysis, and read back what the screens render.
+@Suite("Live analysis flow", .serialized, .enabled(if: LiveBackend.isReachable))
+struct LiveAnalysisFlowTests {
+
+    /// A JPEG signature followed by padding — enough for the backend's byte
+    /// sniffing to accept it as an image.
+    private static let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0] + Array(repeating: 0, count: 64))
+
+    private func signedInAPI() async throws -> LiveTruvixAPI {
+        let client = LiveBackend.client(tokens: InMemoryTokenStore())
+        _ = try await AuthService(client: client).register(LiveBackend.newAccount())
+        return LiveTruvixAPI(client: client)
+    }
+
+    private func draftRequest() -> VehicleCreateRequest {
+        VehicleCreateRequest(
+            make: "BMW",
+            model: "320i",
+            variant: "M Sport",
+            modelYear: 2021,
+            mileageKm: 67_000,
+            fuelType: .petrol,
+            transmission: .automatic,
+            bodyType: .sedan,
+            askingPrice: Money("1250000.00")
+        )
+    }
+
+    @Test("A vehicle saved from the form decodes back intact")
+    func vehicleRoundTrips() async throws {
+        let api = try await signedInAPI()
+
+        let vehicle = try await api.createVehicle(draftRequest())
+
+        #expect(vehicle.displayName == "BMW 320i M Sport")
+        #expect(vehicle.askingPrice == Money("1250000.00"))
+        #expect(vehicle.specificationSummary == "2021 • 67.000 km • Benzin")
+    }
+
+    @Test("An analysis runs from an empty draft to a finished report")
+    func analysisRunsToCompletion() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(draftRequest())
+
+        let opened = try await api.createAnalysis(vehicleID: vehicle.id)
+        #expect(opened.status == .pending)
+
+        let finished = try await api.startAnalysis(id: opened.id)
+
+        #expect(finished.status == .completed)
+        #expect(finished.trustScore != nil)
+        #expect(finished.riskLevel != nil)
+        #expect(!finished.findings.isEmpty)
+        #expect(finished.summary?.isEmpty == false)
+    }
+
+    @Test("Uploaded evidence reaches the report")
+    func evidenceReachesTheReport() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(draftRequest())
+        let analysis = try await api.createAnalysis(vehicleID: vehicle.id)
+
+        let photo = try await api.uploadPhoto(
+            Self.jpeg,
+            filename: "front.jpg",
+            contentType: "image/jpeg",
+            kind: .exterior,
+            analysisID: analysis.id
+        )
+
+        #expect(photo.contentType == "image/jpeg")
+        #expect(photo.sizeBytes == Self.jpeg.count)
+
+        let finished = try await api.startAnalysis(id: analysis.id)
+        #expect(finished.photos.count == 1)
+    }
+
+    @Test("Evidence cannot be added once the analysis has run")
+    func evidenceIsRefusedAfterCompletion() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(draftRequest())
+        let analysis = try await api.createAnalysis(vehicleID: vehicle.id)
+        _ = try await api.startAnalysis(id: analysis.id)
+
+        await #expect(throws: APIError.self) {
+            _ = try await api.uploadPhoto(
+                Self.jpeg,
+                filename: "late.jpg",
+                contentType: "image/jpeg",
+                kind: .exterior,
+                analysisID: analysis.id
+            )
+        }
+    }
+
+    @Test("Running an analysis produces the notifications the centre lists")
+    func analysisProducesNotifications() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(draftRequest())
+        let analysis = try await api.createAnalysis(vehicleID: vehicle.id)
+        _ = try await api.startAnalysis(id: analysis.id)
+
+        let page = try await api.notifications(
+            category: .aiSuggestion, unreadOnly: false, page: 1, pageSize: 20
+        )
+
+        #expect(page.total >= 1)
+        #expect(page.items.first?.eventType == "analysis_completed")
+    }
+
+    @Test("A price drop reaches the dashboard and the notification centre")
+    func priceDropFlowsThrough() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(draftRequest())
+
+        _ = try await api.setFavourite(true, vehicleID: vehicle.id)
+
+        let dashboard = try await api.dashboard()
+        #expect(dashboard.garage.total == 1)
+        #expect(dashboard.savedVehicles.count == 1)
+    }
+
+    @Test("Marking a notification read clears it from the unread count")
+    func markingReadUpdatesTheCount() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(draftRequest())
+        let analysis = try await api.createAnalysis(vehicleID: vehicle.id)
+        _ = try await api.startAnalysis(id: analysis.id)
+
+        let before = try await api.notificationSummary()
+        #expect(before.unread > 0)
+
+        let page = try await api.notifications(
+            category: nil, unreadOnly: true, page: 1, pageSize: 1
+        )
+        let first = try #require(page.items.first)
+        let marked = try await api.markNotificationRead(id: first.id)
+        #expect(marked.read)
+
+        let after = try await api.notificationSummary()
+        #expect(after.unread == before.unread - 1)
+    }
+
+    @Test("Turning a category off stops its notifications being produced")
+    func preferencesSuppressNotifications() async throws {
+        let api = try await signedInAPI()
+        _ = try await api.updateNotificationPreferences(
+            NotificationPreferencesUpdate(aiSuggestions: false)
+        )
+
+        let vehicle = try await api.createVehicle(draftRequest())
+        let analysis = try await api.createAnalysis(vehicleID: vehicle.id)
+        _ = try await api.startAnalysis(id: analysis.id)
+
+        let page = try await api.notifications(
+            category: .aiSuggestion, unreadOnly: false, page: 1, pageSize: 20
+        )
+
+        #expect(page.total == 0)
+    }
+
+    @Test("Preferences read back exactly as they were set")
+    func preferencesRoundTrip() async throws {
+        let api = try await signedInAPI()
+
+        let updated = try await api.updateNotificationPreferences(
+            NotificationPreferencesUpdate(riskAlerts: false)
+        )
+
+        #expect(!updated.riskAlerts)
+        #expect(updated.priceChanges)
+
+        let reloaded = try await api.notificationPreferences()
+        #expect(reloaded == updated)
+    }
+}
