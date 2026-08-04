@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Observation
 
 /// Where the app is in its sign-in lifecycle.
@@ -28,6 +29,7 @@ final class SessionStore {
 
     private let auth: any AuthServicing
     private let client: APIClient
+    private let logger = Logger(subsystem: "app.truvix.ios", category: "session")
 
     init(client: APIClient, auth: any AuthServicing) {
         self.client = client
@@ -39,13 +41,31 @@ final class SessionStore {
     /// A stored token is not trusted on its own: it is verified against the
     /// backend, because it may have been revoked while the app was closed.
     func restore() async {
+        await client.setSessionExpiredHandler { [weak self] in
+            Task { @MainActor in self?.handleExpiry() }
+        }
+
+        if let credentials = LaunchOverrides.automaticSignIn {
+            do {
+                phase = .signedIn(
+                    try await auth.signIn(
+                        email: credentials.email,
+                        password: credentials.password
+                    )
+                )
+                logger.info("Automatic sign-in succeeded for \(credentials.email, privacy: .public)")
+                return
+            } catch {
+                // Logged rather than swallowed: a silent failure here looks
+                // identical to the override not being read at all, which is
+                // exactly the confusion that wastes an afternoon.
+                logger.error("Automatic sign-in failed: \(error.localizedDescription)")
+            }
+        }
+
         guard await auth.hasStoredSession else {
             phase = .signedOut
             return
-        }
-
-        await client.setSessionExpiredHandler { [weak self] in
-            Task { @MainActor in self?.handleExpiry() }
         }
 
         do {

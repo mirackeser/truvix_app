@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	Session tokens live in the Keychain, which refuses access to a process
+	holding no keychain entitlement: the write fails with errSecMissingEntitlement
+	(-34018) and the session silently does not persist across launches.
+
+	The group is written literally rather than through $(AppIdentifierPrefix)
+	so that a simulator build signs without a development team. A device build
+	replaces this with the team-prefixed group from its provisioning profile.
+	-->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>app.truvix.ios</string>
+	</array>
+</dict>
+</plist>

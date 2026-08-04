@@ -50,6 +50,16 @@ enum APIError: LocalizedError, Sendable {
         }
     }
 
+    /// Narrow an arbitrary error back to this type.
+    ///
+    /// Needed where typed throws cannot be preserved — `async let` and calls
+    /// through an existential both erase the thrown type to `any Error` — so
+    /// that screens still receive a case they can render rather than an opaque
+    /// error with an English system message.
+    static func wrapping(_ error: any Error) -> APIError {
+        error as? APIError ?? .unknown(error.localizedDescription)
+    }
+
     /// Whether trying the same request again could plausibly succeed.
     var isRetryable: Bool {
         switch self {

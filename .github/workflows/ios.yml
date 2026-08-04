@@ -51,7 +51,6 @@ jobs:
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
             -resultBundlePath TestResults.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
             | xcbeautify --renderer github-actions
 
       - name: Upload test results
@@ -84,7 +83,6 @@ jobs:
             -project Truvix.xcodeproj \
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
-            CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             GCC_TREAT_WARNINGS_AS_ERRORS=YES \
             | xcbeautify --renderer github-actions

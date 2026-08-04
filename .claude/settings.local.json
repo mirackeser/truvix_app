@@ -66,7 +66,11 @@
       "Bash(xcodebuild build *)",
       "Bash(xcodebuild test *)",
       "Bash(xcodebuild -list -project Truvix.xcodeproj)",
-      "Bash(xcrun simctl *)"
+      "Bash(xcrun simctl *)",
+      "Bash(git commit *)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"kerem.demo@truvix.app\",\"password\":\"truvix-demo-parolasi\"}')",
+      "Bash(codesign -d --entitlements - /tmp/truvix-dd/Build/Products/Debug-iphonesimulator/Truvix.app)",
+      "Bash(codesign -d --entitlements - /tmp/truvix-signed/Build/Products/Debug-iphonesimulator/Truvix.app)"
     ]
   }
 }

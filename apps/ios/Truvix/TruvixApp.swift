@@ -4,17 +4,19 @@ import SwiftUI
 struct TruvixApp: App {
     @State private var session: SessionStore
     private let auth: any AuthServicing
+    private let api: any TruvixAPI
 
     init() {
         let client = APIClient()
         let authService = AuthService(client: client)
         auth = authService
+        api = LiveTruvixAPI(client: client)
         _session = State(wrappedValue: SessionStore(client: client, auth: authService))
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(auth: auth)
+            RootView(auth: auth, api: api)
                 .environment(session)
                 .preferredColorScheme(.dark)
         }
@@ -31,6 +33,7 @@ struct RootView: View {
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     let auth: any AuthServicing
+    let api: any TruvixAPI
 
     var body: some View {
         Group {
@@ -38,61 +41,18 @@ struct RootView: View {
             case .restoring:
                 SplashView()
             case .signedOut:
-                if hasSeenOnboarding {
+                if hasSeenOnboarding || LaunchOverrides.skipsOnboarding {
                     SignInView(auth: auth)
                 } else {
                     OnboardingView { hasSeenOnboarding = true }
                 }
-            case let .signedIn(user):
-                SignedInPlaceholderView(user: user)
+            case .signedIn:
+                AppShell(api: api)
             }
         }
         .animation(Theme.Motion.standard, value: session.phase)
         .task {
             await session.restore()
         }
-    }
-}
-
-/// Landing screen for an authenticated session.
-///
-/// The home screen replaces this in the next slice; it exists so the sign-in
-/// flow can be exercised end to end today rather than dead-ending.
-struct SignedInPlaceholderView: View {
-    @Environment(SessionStore.self) private var session
-
-    let user: UserProfile
-
-    var body: some View {
-        VStack(spacing: Theme.Spacing.lg) {
-            Spacer()
-
-            ScoreBadge(score: 91, size: 88)
-
-            VStack(spacing: Theme.Spacing.xs) {
-                Text("Merhaba, \(user.firstName) 👋")
-                    .font(Theme.Typography.display)
-                    .foregroundStyle(Theme.Colours.textPrimary)
-                Text(user.email)
-                    .font(Theme.Typography.callout)
-                    .foregroundStyle(Theme.Colours.textSecondary)
-                Text(user.subscriptionTier.displayName)
-                    .font(Theme.Typography.label)
-                    .foregroundStyle(Theme.Colours.brand)
-                    .padding(.horizontal, Theme.Spacing.sm)
-                    .padding(.vertical, Theme.Spacing.xxs)
-                    .background(Theme.Colours.brand.opacity(0.14), in: Capsule())
-            }
-
-            Spacer()
-
-            Button("Çıkış Yap") {
-                Task { await session.signOut() }
-            }
-            .buttonStyle(SecondaryButtonStyle())
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.bottom, Theme.Spacing.lg)
-        }
-        .screenBackground()
     }
 }
