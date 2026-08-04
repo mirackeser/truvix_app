@@ -75,6 +75,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106"]  # hardcoded test credentials are intentional
+"scripts/**" = ["T201"]  # command line tools report progress on stdout
 
 [tool.ruff.lint.isort]
 known-first-party = ["truvix"]

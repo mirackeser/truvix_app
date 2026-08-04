@@ -122,6 +122,37 @@ class AnalysisRepository:
         analysis: VehicleAnalysis | None = await self._session.scalar(statement)
         return analysis
 
+    async def best_completed_for_owner(
+        self, *, owner_id: uuid.UUID, limit: int
+    ) -> Sequence[VehicleAnalysis]:
+        """Fetch the owner's highest-scoring completed analyses.
+
+        Backs the home screen's "AI Önerileri": the platform recommends the
+        vehicles its own evaluation rated best, so the suggestion is always
+        traceable to a report the user can open.
+
+        Args:
+            owner_id: The account whose analyses to rank.
+            limit: How many to return.
+        """
+        statement = (
+            select(VehicleAnalysis)
+            .join(Vehicle, VehicleAnalysis.vehicle_id == Vehicle.id)
+            .where(
+                VehicleAnalysis.status == AnalysisStatus.COMPLETED,
+                Vehicle.user_id == owner_id,
+                Vehicle.deleted_at.is_(None),
+            )
+            .options(joinedload(VehicleAnalysis.vehicle))
+            .order_by(
+                VehicleAnalysis.trust_score.desc(),
+                VehicleAnalysis.completed_at.desc(),
+            )
+            .limit(limit)
+        )
+        result = await self._session.scalars(statement)
+        return result.all()
+
     async def photo_for_owner(
         self, *, owner_id: uuid.UUID, analysis_id: uuid.UUID, photo_id: uuid.UUID
     ) -> AnalysisPhoto | None:

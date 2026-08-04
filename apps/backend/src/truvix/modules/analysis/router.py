@@ -103,7 +103,7 @@ async def read_analysis(
     ),
     responses={
         **_STATE_CONFLICT,
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
             "description": "Unsupported file type or size.",
             **_PROBLEM,
         },

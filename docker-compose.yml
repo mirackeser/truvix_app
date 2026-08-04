@@ -1,0 +1,90 @@
+# Local development stack. Production deployment adds TLS termination, secret
+# management and replicas; the service topology stays the same.
+
+name: truvix
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-truvix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-truvix}
+      POSTGRES_DB: ${POSTGRES_DB:-truvix}
+      # Postgres only applies these at initdb time; they make text comparison
+      # correct for Turkish data from the first row onwards.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-truvix} -d ${POSTGRES_DB:-truvix}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [truvix]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # Rate limit counters and caches are both reconstructible, so persistence
+    # is off: a restart costs nothing and avoids fsync latency on every write.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [truvix]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TRUVIX_ENVIRONMENT: ${TRUVIX_ENVIRONMENT:-development}
+      TRUVIX_DB_DSN: postgresql+asyncpg://${POSTGRES_USER:-truvix}:${POSTGRES_PASSWORD:-truvix}@postgres:5432/${POSTGRES_DB:-truvix}
+      TRUVIX_REDIS_DSN: redis://redis:6379/0
+      TRUVIX_SECURITY_SECRET_KEY: ${TRUVIX_SECURITY_SECRET_KEY:?set a signing key in .env}
+      TRUVIX_STORAGE_ROOT_DIR: /app/storage
+      TRUVIX_AI_API_KEY: ${TRUVIX_AI_API_KEY:-}
+      TRUVIX_OBS_LOG_FORMAT: ${TRUVIX_OBS_LOG_FORMAT:-console}
+    volumes:
+      - uploaded-files:/app/storage
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks: [truvix]
+    restart: unless-stopped
+
+  # Runs migrations to completion and exits, so the API never starts against a
+  # schema it does not expect. Run with: docker compose run --rm migrate
+  migrate:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TRUVIX_DB_DSN: postgresql+asyncpg://${POSTGRES_USER:-truvix}:${POSTGRES_PASSWORD:-truvix}@postgres:5432/${POSTGRES_DB:-truvix}
+      TRUVIX_REDIS_DSN: redis://redis:6379/0
+      TRUVIX_SECURITY_SECRET_KEY: ${TRUVIX_SECURITY_SECRET_KEY:?set a signing key in .env}
+    command: ["alembic", "upgrade", "head"]
+    networks: [truvix]
+    restart: "no"
+
+volumes:
+  postgres-data:
+  uploaded-files:
+
+networks:
+  truvix:
+    driver: bridge

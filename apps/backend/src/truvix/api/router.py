@@ -12,6 +12,7 @@ from fastapi import APIRouter
 from truvix.modules.analysis.router import router as analyses_router
 from truvix.modules.auth.router import router as auth_router
 from truvix.modules.copilot.router import router as copilot_router
+from truvix.modules.dashboard.router import router as dashboard_router
 from truvix.modules.notifications.router import router as notifications_router
 from truvix.modules.vehicles.router import collections_router
 from truvix.modules.vehicles.router import router as vehicles_router
@@ -25,6 +26,7 @@ def build_api_v1_router() -> APIRouter:
     """
     router = APIRouter()
     router.include_router(auth_router)
+    router.include_router(dashboard_router)
     router.include_router(vehicles_router)
     router.include_router(collections_router)
     router.include_router(analyses_router)

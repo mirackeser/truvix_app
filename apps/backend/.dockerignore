@@ -1,0 +1,25 @@
+# Keeping the build context small speeds up every build and, more importantly,
+# stops local secrets and virtualenvs from being copied into an image layer.
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Local configuration frequently holds real credentials.
+.env
+.env.*
+!.env.example
+
+# Uploaded files belong on a volume, never baked into the image.
+storage/
+
+tests/
+.git/
+.gitignore
+*.md

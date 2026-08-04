@@ -108,7 +108,7 @@ async def handle_request_validation_error(
     _logger.info("request_validation_failed", field_count=len(field_errors))
     return _problem_response(
         request=request,
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         error_code="validation_failed",
         title="Validation Failed",
         detail="The request body failed validation.",
