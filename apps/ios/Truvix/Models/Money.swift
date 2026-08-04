@@ -23,6 +23,15 @@ struct Money: Equatable, Hashable, Sendable, Comparable {
 
     var magnitude: Money { Money(abs(amount)) }
 
+    /// The amount as a `Double`, for charting only.
+    ///
+    /// Charts need a floating-point axis, and losing precision below a kuruş
+    /// is invisible at a chart's resolution. Every figure the reader actually
+    /// reads still comes from the exact `Decimal`.
+    var plottableAmount: Double {
+        (amount as NSDecimalNumber).doubleValue
+    }
+
     /// Render as the app displays money: "1.250.000 ₺".
     ///
     /// Kuruş are dropped: no vehicle is priced to the kuruş, and the extra

@@ -40,10 +40,16 @@ enum LaunchOverrides {
     static var opensNewAnalysis: Bool {
         UserDefaults.standard.bool(forKey: "truvixOpenNewAnalysis")
     }
+
+    /// A vehicle to open on launch, so its detail screen is verifiable.
+    static var initialVehicleID: UUID? {
+        UserDefaults.standard.string(forKey: "truvixOpenVehicle").flatMap(UUID.init(uuidString:))
+    }
     #else
     static var automaticSignIn: (email: String, password: String)? { nil }
     static var skipsOnboarding: Bool { false }
     static var initialTab: AppTab? { nil }
     static var opensNewAnalysis: Bool { false }
+    static var initialVehicleID: UUID? { nil }
     #endif
 }

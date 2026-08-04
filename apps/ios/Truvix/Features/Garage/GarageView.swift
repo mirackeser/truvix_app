@@ -3,15 +3,18 @@ import SwiftUI
 /// The garage: every saved vehicle, filtered by tab and sorted on demand.
 struct GarageView: View {
     @State private var model: GarageModel
+    @State private var path = NavigationPath()
+    private let api: any TruvixAPI
     private let onStartAnalysis: () -> Void
 
     init(api: any TruvixAPI, onStartAnalysis: @escaping () -> Void) {
         _model = State(wrappedValue: GarageModel(api: api))
+        self.api = api
         self.onStartAnalysis = onStartAnalysis
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 header
                 filterTabs
@@ -35,8 +38,18 @@ struct GarageView: View {
             }
             .screenBackground()
             .navigationBarHidden(true)
+            .navigationDestination(for: UUID.self) { vehicleID in
+                VehicleDetailView(api: api, vehicleID: vehicleID)
+            }
         }
-        .task { await model.load() }
+        .task {
+            // A vehicle supplied at launch opens directly, which is the same
+            // path a tapped notification will take.
+            if let vehicleID = LaunchOverrides.initialVehicleID {
+                path.append(vehicleID)
+            }
+            await model.load()
+        }
     }
 
     // MARK: - Sections
@@ -95,9 +108,12 @@ struct GarageView: View {
         ScrollView {
             LazyVStack(spacing: Theme.Spacing.sm) {
                 ForEach(vehicles) { summary in
-                    VehicleCard(summary: summary) {
-                        Task { await model.toggleFavourite(summary) }
+                    NavigationLink(value: summary.vehicle.id) {
+                        VehicleCard(summary: summary) {
+                            Task { await model.toggleFavourite(summary) }
+                        }
                     }
+                    .buttonStyle(.plain)
                     .task { await model.loadMoreIfNeeded(currentItem: summary) }
                 }
 

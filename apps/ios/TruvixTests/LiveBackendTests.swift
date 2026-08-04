@@ -408,3 +408,126 @@ struct LiveAnalysisFlowTests {
         #expect(reloaded == updated)
     }
 }
+
+// MARK: - Copilot and price history
+
+/// Covers the two surfaces the detail screen depends on.
+@Suite("Live copilot and history", .serialized, .enabled(if: LiveBackend.isReachable))
+struct LiveCopilotTests {
+
+    private func signedInAPI() async throws -> LiveTruvixAPI {
+        let client = LiveBackend.client(tokens: InMemoryTokenStore())
+        _ = try await AuthService(client: client).register(LiveBackend.newAccount())
+        return LiveTruvixAPI(client: client)
+    }
+
+    private func vehicleRequest() -> VehicleCreateRequest {
+        VehicleCreateRequest(
+            make: "BMW",
+            model: "320i",
+            modelYear: 2021,
+            mileageKm: 67_000,
+            fuelType: .petrol,
+            transmission: .automatic,
+            askingPrice: Money("1250000.00")
+        )
+    }
+
+    @Test("Availability reflects whether a provider is configured")
+    func statusIsReported() async throws {
+        let api = try await signedInAPI()
+
+        // Either answer is correct; what matters is that the screen can ask
+        // rather than discovering it by having a message rejected.
+        _ = try await api.copilotStatus().available
+    }
+
+    @Test("Opening a conversation twice returns the same thread")
+    func conversationIsGetOrCreate() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(vehicleRequest())
+
+        let first = try await api.openConversation(vehicleID: vehicle.id)
+        let second = try await api.openConversation(vehicleID: vehicle.id)
+
+        #expect(first.conversation.id == second.conversation.id)
+        #expect(first.conversation.vehicleDisplayName == "BMW 320i")
+    }
+
+    @Test("A conversation about another account's vehicle is refused")
+    func conversationIsScopedToItsOwner() async throws {
+        let owner = try await signedInAPI()
+        let intruder = try await signedInAPI()
+        let vehicle = try await owner.createVehicle(vehicleRequest())
+
+        await #expect(throws: APIError.self) {
+            _ = try await intruder.openConversation(vehicleID: vehicle.id)
+        }
+    }
+
+    @Test("Sending without a configured provider fails rather than hanging")
+    func sendingWithoutProviderFails() async throws {
+        let api = try await signedInAPI()
+        guard try await !api.copilotStatus().available else { return }
+
+        let vehicle = try await api.createVehicle(vehicleRequest())
+        let thread = try await api.openConversation(vehicleID: vehicle.id)
+
+        await #expect(throws: APIError.self) {
+            _ = try await api.sendCopilotMessage(
+                "Bu araç alınır mı?", conversationID: thread.conversation.id
+            )
+        }
+    }
+
+    @Test("A new vehicle already has one price observation")
+    func creationRecordsFirstPrice() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(vehicleRequest())
+
+        let history = try await api.priceHistory(vehicleID: vehicle.id, windowDays: 30)
+
+        #expect(history.points.count == 1)
+        #expect(history.points.first?.price == Money("1250000.00"))
+        #expect(!history.isPlottable)
+    }
+
+    @Test("A recorded price becomes a second point and a trend")
+    func recordedPriceExtendsTheSeries() async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(vehicleRequest())
+
+        _ = try await api.recordPrice(Money("1225000.00"), vehicleID: vehicle.id)
+        let history = try await api.priceHistory(vehicleID: vehicle.id, windowDays: 30)
+
+        // Both observations fall on the same local day, so the series collapses
+        // them to one point while the trend still reports the movement.
+        let trend = try #require(history.trend)
+        #expect(trend.hasDropped)
+        #expect(trend.absoluteChange == Money("-25000.00"))
+        #expect(trend.observationCount == 2)
+    }
+
+    @Test("Another account cannot read the price history")
+    func historyIsScopedToItsOwner() async throws {
+        let owner = try await signedInAPI()
+        let intruder = try await signedInAPI()
+        let vehicle = try await owner.createVehicle(vehicleRequest())
+
+        await #expect(throws: APIError.self) {
+            _ = try await intruder.priceHistory(vehicleID: vehicle.id, windowDays: 30)
+        }
+    }
+
+    @Test("The window is honoured", arguments: PriceWindow.allCases)
+    func windowIsHonoured(window: PriceWindow) async throws {
+        let api = try await signedInAPI()
+        let vehicle = try await api.createVehicle(vehicleRequest())
+
+        let history = try await api.priceHistory(
+            vehicleID: vehicle.id, windowDays: window.rawValue
+        )
+
+        #expect(history.windowDays == window.rawValue)
+    }
+}

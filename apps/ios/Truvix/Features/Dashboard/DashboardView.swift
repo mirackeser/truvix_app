@@ -189,7 +189,12 @@ struct DashboardView: View {
             SectionHeader("Fiyat Takibi")
             VStack(spacing: Theme.Spacing.xs) {
                 ForEach(drops) { summary in
-                    PriceDropRow(summary: summary)
+                    NavigationLink {
+                        VehicleDetailView(api: api, vehicleID: summary.vehicle.id)
+                    } label: {
+                        PriceDropRow(summary: summary)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -213,7 +218,12 @@ struct DashboardView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Theme.Spacing.sm) {
                     ForEach(vehicles) { vehicle in
-                        SavedVehicleCard(vehicle: vehicle)
+                        NavigationLink {
+                            VehicleDetailView(api: api, vehicleID: vehicle.id)
+                        } label: {
+                            SavedVehicleCard(vehicle: vehicle)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 1)

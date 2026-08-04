@@ -50,6 +50,20 @@ protocol TruvixAPI: Sendable {
     func updateNotificationPreferences(
         _ update: NotificationPreferencesUpdate
     ) async throws(APIError) -> NotificationPreferences
+
+    func priceHistory(vehicleID: UUID, windowDays: Int) async throws(APIError) -> PriceHistory
+    func recordPrice(
+        _ price: Money,
+        vehicleID: UUID
+    ) async throws(APIError) -> PriceObservation
+
+    func copilotStatus() async throws(APIError) -> CopilotStatus
+    func openConversation(vehicleID: UUID) async throws(APIError) -> CopilotThread
+    func conversation(id: UUID) async throws(APIError) -> CopilotThread
+    func sendCopilotMessage(
+        _ content: String,
+        conversationID: UUID
+    ) async throws(APIError) -> MessageExchange
 }
 
 /// The live implementation, talking to the backend through `APIClient`.
@@ -215,6 +229,65 @@ struct LiveTruvixAPI: TruvixAPI {
     ) async throws(APIError) -> NotificationPreferences {
         try await client.send(
             APIRequest(method: .patch, path: "notifications/preferences", body: update)
+        )
+    }
+
+    // MARK: - Price history
+
+    func priceHistory(vehicleID: UUID, windowDays: Int) async throws(APIError) -> PriceHistory {
+        try await client.send(
+            APIRequest(
+                path: "vehicles/\(vehicleID.uuidString.lowercased())/prices",
+                query: ["window_days": String(windowDays)]
+            )
+        )
+    }
+
+    func recordPrice(
+        _ price: Money,
+        vehicleID: UUID
+    ) async throws(APIError) -> PriceObservation {
+        try await client.send(
+            APIRequest(
+                method: .post,
+                path: "vehicles/\(vehicleID.uuidString.lowercased())/prices",
+                body: PriceUpdateRequest(price: price)
+            )
+        )
+    }
+
+    // MARK: - Copilot
+
+    func copilotStatus() async throws(APIError) -> CopilotStatus {
+        try await client.send(APIRequest(path: "copilot/status"))
+    }
+
+    func openConversation(vehicleID: UUID) async throws(APIError) -> CopilotThread {
+        try await client.send(
+            APIRequest(
+                method: .post,
+                path: "copilot/conversations",
+                body: ConversationOpenRequest(vehicleId: vehicleID)
+            )
+        )
+    }
+
+    func conversation(id: UUID) async throws(APIError) -> CopilotThread {
+        try await client.send(
+            APIRequest(path: "copilot/conversations/\(id.uuidString.lowercased())")
+        )
+    }
+
+    func sendCopilotMessage(
+        _ content: String,
+        conversationID: UUID
+    ) async throws(APIError) -> MessageExchange {
+        try await client.send(
+            APIRequest(
+                method: .post,
+                path: "copilot/conversations/\(conversationID.uuidString.lowercased())/messages",
+                body: MessageSendRequest(content: content)
+            )
         )
     }
 
