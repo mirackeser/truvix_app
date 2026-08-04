@@ -55,7 +55,9 @@
       "Bash(PYTHONPATH=src .venv/bin/alembic revision --autogenerate -m \"create copilot conversations and messages\")",
       "Bash(.venv/bin/pytest tests/unit/test_llm_engine.py tests/integration/test_copilot.py -q -p no:warnings)",
       "Bash(.venv/bin/pytest tests/unit/test_llm_engine.py::TestEnrichment::test_a_valid_review_adjusts_the_score_and_adds_findings -q -p no:warnings)",
-      "Bash(.venv/bin/pytest tests/unit/test_llm_engine.py::TestEnrichment::test_a_valid_review_adjusts_the_score_and_adds_findings -q -p no:warnings -s)"
+      "Bash(.venv/bin/pytest tests/unit/test_llm_engine.py::TestEnrichment::test_a_valid_review_adjusts_the_score_and_adds_findings -q -p no:warnings -s)",
+      "Bash(PYTHONPATH=src .venv/bin/alembic revision --autogenerate -m \"create notifications and preferences\")",
+      "Bash(.venv/bin/pytest tests/integration/test_notifications.py -q -p no:warnings)"
     ]
   }
 }

@@ -23,6 +23,7 @@ from truvix.modules.analysis.models import (
     RiskLevel,
 )
 from truvix.modules.vehicles.models import Vehicle
+from truvix.shared.formatting import format_number
 
 # Score bands mirroring the report screen: 80+ renders as "Düşük Risk".
 LOW_RISK_THRESHOLD = 80
@@ -201,7 +202,8 @@ class RuleBasedEngine:
                     severity=FindingSeverity.POSITIVE,
                     title="Kilometre ortalamanın altında",
                     detail=(
-                        f"Yıllık ortalama {annual_km:,.0f} km kullanım, {_LOW_ANNUAL_KM:,} km "
+                        f"Yıllık ortalama {format_number(annual_km)} km kullanım, "
+                        f"{format_number(_LOW_ANNUAL_KM)} km "
                         "olan piyasa ortalamasının altında."
                     ),
                 )
@@ -214,7 +216,8 @@ class RuleBasedEngine:
                     severity=FindingSeverity.WARNING,
                     title="Kilometre ortalamanın üzerinde",
                     detail=(
-                        f"Yıllık ortalama {annual_km:,.0f} km kullanım yoğun kullanıma işaret "
+                        f"Yıllık ortalama {format_number(annual_km)} km kullanım yoğun kullanıma "
+                        "işaret "
                         "eder; motor ve şanzıman durumunu kontrol ettirin."
                     ),
                 )

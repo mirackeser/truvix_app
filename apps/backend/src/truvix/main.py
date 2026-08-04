@@ -17,6 +17,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from truvix import __version__
 from truvix.api.health import router as health_router
 from truvix.api.router import build_api_v1_router
+from truvix.modules.notifications.handlers import register_notification_handlers
 from truvix.shared.config import Settings, get_settings
 from truvix.shared.container import ApplicationContainer
 from truvix.shared.errors import register_exception_handlers
@@ -114,6 +115,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     _register_middleware(app, resolved)
     register_exception_handlers(app)
     _register_routes(app, resolved)
+    register_notification_handlers()
 
     return app
 

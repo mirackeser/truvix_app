@@ -26,6 +26,7 @@ from truvix.modules.analysis.schemas import AnalysisSummaryResponse
 from truvix.modules.vehicles.repository import VehicleRepository
 from truvix.shared.config import StorageSettings
 from truvix.shared.errors import ConflictError, NotFoundError
+from truvix.shared.events import AnalysisCompleted, EventBus
 from truvix.shared.logging import get_logger
 from truvix.shared.pagination import Page, PageParams
 from truvix.shared.storage import LocalFileStorage, sniff_upload
@@ -44,6 +45,7 @@ class AnalysisService:
         storage: LocalFileStorage,
         engine: AnalysisEngine,
         settings: StorageSettings,
+        events: EventBus,
     ) -> None:
         """Initialise the service.
 
@@ -53,12 +55,14 @@ class AnalysisService:
             storage: Where uploaded evidence is persisted.
             engine: The evaluation engine to run.
             settings: Upload size and count limits.
+            events: Request-scoped bus for domain events.
         """
         self._analyses = analyses
         self._vehicles = vehicles
         self._storage = storage
         self._engine = engine
         self._settings = settings
+        self._events = events
 
     async def create(self, *, owner_id: uuid.UUID, vehicle_id: uuid.UUID) -> VehicleAnalysis:
         """Open a new analysis for one of the owner's vehicles.
@@ -216,6 +220,16 @@ class AnalysisService:
             )
         await self._analyses.flush()
 
+        self._events.publish(
+            AnalysisCompleted(
+                user_id=owner_id,
+                vehicle_id=analysis.vehicle_id,
+                analysis_id=analysis.id,
+                vehicle_name=analysis.vehicle.display_name,
+                trust_score=result.trust_score,
+                risk_level=result.risk_level.value,
+            )
+        )
         _logger.info(
             "analysis_completed",
             analysis_id=str(analysis.id),

@@ -34,6 +34,7 @@ from truvix.modules.vehicles.schemas import (
     VehicleUpdateRequest,
 )
 from truvix.shared.errors import ConflictError, NotFoundError
+from truvix.shared.events import EventBus, PriceDropped
 from truvix.shared.logging import get_logger
 from truvix.shared.pagination import Page, PageParams
 
@@ -73,15 +74,18 @@ class VehicleService:
         *,
         vehicles: VehicleRepository,
         collections: CollectionRepository,
+        events: EventBus,
     ) -> None:
         """Initialise the service.
 
         Args:
             vehicles: Access to vehicle and price records.
             collections: Access to collection records.
+            events: Request-scoped bus for domain events.
         """
         self._vehicles = vehicles
         self._collections = collections
+        self._events = events
 
     async def create(self, *, owner_id: uuid.UUID, payload: VehicleCreateRequest) -> Vehicle:
         """Save a vehicle to the owner's garage.
@@ -178,11 +182,23 @@ class VehicleService:
         if "listing_url" in changes and changes["listing_url"] is not None:
             changes["listing_url"] = str(changes["listing_url"])
 
+        previous_price = vehicle.asking_price
         new_price = changes.get("asking_price")
-        price_changed = new_price is not None and new_price != vehicle.asking_price
+        price_changed = new_price is not None and new_price != previous_price
 
         for field, value in changes.items():
             setattr(vehicle, field, value)
+
+        if price_changed and vehicle.asking_price < previous_price:
+            self._events.publish(
+                PriceDropped(
+                    user_id=owner_id,
+                    vehicle_id=vehicle.id,
+                    vehicle_name=vehicle.display_name,
+                    previous_price=previous_price,
+                    new_price=vehicle.asking_price,
+                )
+            )
 
         if price_changed:
             self._vehicles.add_price_snapshot(
@@ -245,6 +261,7 @@ class VehicleService:
             NotFoundError: If no live vehicle with that id belongs to the owner.
         """
         vehicle = await self._require(owner_id=owner_id, vehicle_id=vehicle_id)
+        previous_price = vehicle.asking_price
 
         snapshot = PriceSnapshot(
             vehicle_id=vehicle.id,
@@ -254,6 +271,17 @@ class VehicleService:
             source=PriceSource.USER_REPORTED,
         )
         self._vehicles.add_price_snapshot(snapshot)
+
+        if price < previous_price:
+            self._events.publish(
+                PriceDropped(
+                    user_id=owner_id,
+                    vehicle_id=vehicle.id,
+                    vehicle_name=vehicle.display_name,
+                    previous_price=previous_price,
+                    new_price=price,
+                )
+            )
 
         # The card always shows the most recent observation, so the vehicle's
         # asking price follows it rather than drifting out of step.

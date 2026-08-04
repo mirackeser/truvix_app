@@ -20,6 +20,11 @@ from truvix.modules.analysis.models import (
 )
 from truvix.modules.auth.models import RefreshToken
 from truvix.modules.copilot.models import CopilotConversation, CopilotMessage, MessageRole
+from truvix.modules.notifications.models import (
+    Notification,
+    NotificationCategory,
+    NotificationPreference,
+)
 from truvix.modules.users.models import SubscriptionTier, User, UserStatus
 from truvix.modules.vehicles.models import (
     BodyType,
@@ -51,6 +56,9 @@ __all__ = [
     "FuelType",
     "ListingSource",
     "MessageRole",
+    "Notification",
+    "NotificationCategory",
+    "NotificationPreference",
     "PhotoKind",
     "PriceSnapshot",
     "PriceSource",

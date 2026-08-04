@@ -232,7 +232,7 @@ class TestMessaging:
 
         sent = " ".join(message.content for message in chat_model.received[0])
         assert "BMW 320i M Sport" in sent
-        assert "67,000 km" in sent
+        assert "67.000 km" in sent
 
     async def test_plate_and_vin_never_reach_the_model(
         self, client: AsyncClient, owner: dict[str, str], chat_model: RecordingChatModel

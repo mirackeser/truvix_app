@@ -11,7 +11,7 @@ from truvix.modules.analysis.llm_engine import LLMEnrichedEngine
 from truvix.modules.analysis.repository import AnalysisRepository
 from truvix.modules.analysis.service import AnalysisService
 from truvix.modules.vehicles.dependencies import VehicleRepositoryDep
-from truvix.shared.dependencies import ContainerDep, SessionDep, SettingsDep
+from truvix.shared.dependencies import ContainerDep, EventBusDep, SessionDep, SettingsDep
 
 # One rule engine instance serves every request: it is stateless and cheap.
 _rule_based_engine = RuleBasedEngine()
@@ -45,6 +45,7 @@ def get_analysis_service(
     container: ContainerDep,
     settings: SettingsDep,
     engine: AnalysisEngineDep,
+    events: EventBusDep,
 ) -> AnalysisService:
     """Provide the analysis workflow service for the current request."""
     return AnalysisService(
@@ -53,6 +54,7 @@ def get_analysis_service(
         storage=container.file_storage,
         engine=engine,
         settings=settings.storage,
+        events=events,
     )
 
 

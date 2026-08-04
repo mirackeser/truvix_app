@@ -19,6 +19,7 @@ from truvix.modules.vehicles.repository import VehicleRepository
 from truvix.shared.ai import ChatMessage, ChatModel, ChatRole
 from truvix.shared.config import AISettings
 from truvix.shared.errors import NotFoundError, ServiceUnavailableError
+from truvix.shared.formatting import format_number, format_price
 from truvix.shared.logging import get_logger
 from truvix.shared.pagination import PageParams
 
@@ -47,9 +48,9 @@ def _vehicle_context(vehicle: Vehicle, analysis: VehicleAnalysis | None) -> str:
     lines = [
         "ARAÇ BİLGİLERİ:",
         f"- Araç: {vehicle.display_name} ({vehicle.model_year})",
-        f"- Kilometre: {vehicle.mileage_km:,} km",
+        f"- Kilometre: {format_number(vehicle.mileage_km)} km",
         f"- Yakıt/Vites: {vehicle.fuel_type.value} / {vehicle.transmission.value}",
-        f"- İstenen fiyat: {vehicle.asking_price} {vehicle.currency.value}",
+        f"- İstenen fiyat: {format_price(vehicle.asking_price, vehicle.currency.value)}",
         f"- Şehir: {vehicle.city or 'belirtilmemiş'}",
         f"- VIN kayıtlı mı: {'evet' if vehicle.vin else 'hayır'}",
     ]
