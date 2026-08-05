@@ -4,11 +4,17 @@ import SwiftUI
 struct GarageView: View {
     @State private var model: GarageModel
     @State private var path = NavigationPath()
+    @Binding private var openingVehicleID: UUID?
     private let api: any TruvixAPI
     private let onStartAnalysis: () -> Void
 
-    init(api: any TruvixAPI, onStartAnalysis: @escaping () -> Void) {
+    init(
+        api: any TruvixAPI,
+        openingVehicleID: Binding<UUID?> = .constant(nil),
+        onStartAnalysis: @escaping () -> Void
+    ) {
         _model = State(wrappedValue: GarageModel(api: api))
+        _openingVehicleID = openingVehicleID
         self.api = api
         self.onStartAnalysis = onStartAnalysis
     }
@@ -43,12 +49,19 @@ struct GarageView: View {
             }
         }
         .task {
-            // A vehicle supplied at launch opens directly, which is the same
-            // path a tapped notification will take.
+            // A vehicle supplied at launch opens directly, the same path a
+            // tapped notification takes.
             if let vehicleID = LaunchOverrides.initialVehicleID {
                 path.append(vehicleID)
             }
             await model.load()
+        }
+        .onChange(of: openingVehicleID) { _, requested in
+            guard let requested else { return }
+            path.append(requested)
+            // Cleared immediately so returning to the garage does not push the
+            // same vehicle again.
+            openingVehicleID = nil
         }
     }
 
@@ -75,7 +88,7 @@ struct GarageView: View {
                 }
             } label: {
                 Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(Theme.Typography.headline)
                     .foregroundStyle(Theme.Colours.textPrimary)
                     .frame(width: 44, height: 44)
                     .background(Theme.Colours.surface, in: Circle())
@@ -203,7 +216,7 @@ private struct FilterChip: View {
                     .font(Theme.Typography.callout)
                 if count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(Theme.Typography.microBold)
                         .monospacedDigit()
                         .opacity(0.8)
                 }
@@ -262,7 +275,7 @@ private struct VehicleCard: View {
 
                     Button(action: onToggleFavourite) {
                         Image(systemName: vehicle.isFavourite ? "heart.fill" : "heart")
-                            .font(.system(size: 17))
+                            .font(Theme.Typography.headline)
                             .foregroundStyle(
                                 vehicle.isFavourite
                                     ? Theme.Colours.danger
@@ -280,7 +293,7 @@ private struct VehicleCard: View {
                    let change = trend.formattedChange(vehicle.currency) {
                     HStack(spacing: Theme.Spacing.xxs) {
                         Image(systemName: trend.hasDropped ? "arrow.down" : "arrow.up")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(Theme.Typography.microBold)
                         Text(change)
                             .font(Theme.Typography.caption)
                         if let percentage = trend.percentageChange {

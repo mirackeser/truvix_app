@@ -48,7 +48,7 @@ struct SignInView: View {
     private var hero: some View {
         VStack(spacing: Theme.Spacing.sm) {
             Text("TRUVIX")
-                .font(.system(size: 28, weight: .light))
+                .font(Theme.Typography.display.weight(.light))
                 .kerning(8)
                 .foregroundStyle(Theme.Colours.textPrimary)
 

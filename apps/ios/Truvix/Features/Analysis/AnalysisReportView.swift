@@ -132,7 +132,7 @@ private struct FindingRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.sm) {
             Image(systemName: finding.severity.symbolName)
-                .font(.system(size: 16))
+                .font(Theme.Typography.body)
                 .foregroundStyle(tint)
                 .frame(width: 22)
 

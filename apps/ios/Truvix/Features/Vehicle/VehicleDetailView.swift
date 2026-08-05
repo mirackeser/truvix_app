@@ -178,7 +178,7 @@ struct VehicleDetailView: View {
                                 .foregroundStyle(Theme.Colours.textSecondary)
                             HStack(spacing: 3) {
                                 Image(systemName: trend.hasDropped ? "arrow.down" : "arrow.up")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(Theme.Typography.microBold)
                                 Text(change)
                                     .font(Theme.Typography.headline)
                             }
@@ -357,7 +357,7 @@ private struct AnalysisListRow: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Theme.Typography.label)
                     .foregroundStyle(Theme.Colours.textSecondary)
             }
         }
@@ -387,6 +387,7 @@ private struct ChartTab: View {
                         Image(systemName: "chart.xyaxis.line")
                             .font(.system(size: 30, weight: .light))
                             .foregroundStyle(Theme.Colours.textSecondary)
+                            .accessibilityHidden(true)
                         Text("Grafik için en az iki fiyat kaydı gerekiyor.")
                             .font(Theme.Typography.callout)
                             .foregroundStyle(Theme.Colours.textSecondary)
@@ -494,7 +495,7 @@ private struct ChartTab: View {
                 AxisValueLabel {
                     if let amount = value.as(Double.self) {
                         Text(Money(Decimal(amount)).formatted(currency))
-                            .font(.system(size: 10))
+                            .font(Theme.Typography.micro)
                             .foregroundStyle(Theme.Colours.textSecondary)
                     }
                 }
@@ -504,7 +505,7 @@ private struct ChartTab: View {
             AxisMarks { value in
                 AxisGridLine().foregroundStyle(Theme.Colours.border.opacity(0.5))
                 AxisValueLabel(format: .dateTime.day().month(.abbreviated))
-                    .font(.system(size: 10))
+                    .font(Theme.Typography.micro)
                     .foregroundStyle(Theme.Colours.textSecondary)
             }
         }

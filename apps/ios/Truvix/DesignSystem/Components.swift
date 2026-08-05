@@ -92,6 +92,34 @@ extension SectionHeader where Trailing == EmptyView {
     }
 }
 
+/// Lays content out in a row, switching to a column at accessibility sizes.
+///
+/// A row whose text has tripled in height squeezes each half into a column of
+/// two or three characters. Falling back to a stack keeps every element at a
+/// readable width instead, which is what the reader asked for by choosing that
+/// size.
+struct AdaptiveStack<Content: View>: View {
+    var horizontalSpacing: CGFloat = Theme.Spacing.md
+    var verticalSpacing: CGFloat = Theme.Spacing.sm
+    var horizontalAlignment: HorizontalAlignment = .leading
+    var verticalAlignment: VerticalAlignment = .center
+    @ViewBuilder var content: Content
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: horizontalAlignment, spacing: verticalSpacing) {
+                content
+            }
+        } else {
+            HStack(alignment: verticalAlignment, spacing: horizontalSpacing) {
+                content
+            }
+        }
+    }
+}
+
 // MARK: - Fields
 
 /// The dark rounded text field used across the sign-in and analysis forms.

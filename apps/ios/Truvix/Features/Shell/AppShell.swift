@@ -42,6 +42,15 @@ struct AppShell: View {
 
     @State private var tab: AppTab = LaunchOverrides.initialTab ?? .home
     @State private var isPresentingNewAnalysis = LaunchOverrides.opensNewAnalysis
+    /// Set when a notification asks for a vehicle, and consumed by the garage.
+    @State private var requestedVehicleID: UUID?
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Reserved space under the content, matching the bar's two layouts.
+    private var barHeight: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 62 : 76
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -54,17 +63,25 @@ struct AppShell: View {
                         onOpenNotifications: { tab = .notifications }
                     )
                 case .garage:
-                    GarageView(api: api) { isPresentingNewAnalysis = true }
+                    GarageView(
+                        api: api,
+                        openingVehicleID: $requestedVehicleID
+                    ) { isPresentingNewAnalysis = true }
                 case .notifications:
-                    NotificationsView(api: api)
+                    NotificationsView(api: api) { vehicleID in
+                        // Switching tab first means the garage's stack is on
+                        // screen by the time it consumes the request.
+                        requestedVehicleID = vehicleID
+                        tab = .garage
+                    }
                 case .profile:
-                    ProfileView()
+                    ProfileView(api: api)
                 }
             }
             // The content extends under the bar so scrolling feels continuous;
             // the inset keeps the last row reachable above it.
             .safeAreaInset(edge: .bottom) {
-                Color.clear.frame(height: 76)
+                Color.clear.frame(height: barHeight)
             }
 
             TabBar(selection: $tab) { isPresentingNewAnalysis = true }
@@ -77,9 +94,20 @@ struct AppShell: View {
 }
 
 /// The custom bottom bar.
+///
+/// At accessibility text sizes the labels are dropped and only the icons
+/// remain. Letting them scale freely wraps each label over three lines, which
+/// pushes the bar to half the screen and overlaps the centre action — the
+/// navigation becomes unusable at precisely the setting meant to make the app
+/// easier to use. Each item keeps its accessibility label, so nothing is lost
+/// to VoiceOver, and the icons themselves grow.
 private struct TabBar: View {
     @Binding var selection: AppTab
     let onCentreAction: () -> Void
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var showsLabels: Bool { !dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -88,14 +116,14 @@ private struct TabBar: View {
 
             Button(action: onCentreAction) {
                 Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(Theme.Typography.title)
                     .foregroundStyle(Theme.Colours.textOnBrand)
                     .frame(width: 54, height: 54)
                     .background(Theme.Colours.brandGradient, in: Circle())
                     .shadow(color: Theme.Colours.brand.opacity(0.45), radius: 12, y: 4)
             }
             .frame(maxWidth: .infinity)
-            .offset(y: -14)
+            .offset(y: showsLabels ? -14 : 0)
             .accessibilityLabel("Yeni analiz başlat")
 
             item(.notifications)
@@ -129,9 +157,14 @@ private struct TabBar: View {
                         ? candidate.filledSymbolName
                         : candidate.symbolName
                 )
-                .font(.system(size: 19, weight: .medium))
-                Text(candidate.title)
-                    .font(.system(size: 10, weight: .medium))
+                .font(Theme.Typography.headline)
+
+                if showsLabels {
+                    Text(candidate.title)
+                        .font(Theme.Typography.micro)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
             }
             .foregroundStyle(
                 selection == candidate ? Theme.Colours.brand : Theme.Colours.textSecondary
@@ -166,6 +199,7 @@ struct ComingSoonView: View {
                     .font(.system(size: 38, weight: .light))
                     .foregroundStyle(Theme.Colours.brand)
             }
+            .accessibilityHidden(true)
             Text(title)
                 .font(Theme.Typography.title)
                 .foregroundStyle(Theme.Colours.textPrimary)
@@ -178,54 +212,5 @@ struct ComingSoonView: View {
         }
         .padding(Theme.Spacing.lg)
         .screenBackground()
-    }
-}
-
-/// The profile tab: the account and the way out of it.
-struct ProfileView: View {
-    @Environment(SessionStore.self) private var session
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Theme.Spacing.lg) {
-                    if let user = session.phase.user {
-                        VStack(spacing: Theme.Spacing.xs) {
-                            Text(user.firstName.prefix(1).uppercased())
-                                .font(.system(size: 32, weight: .semibold))
-                                .foregroundStyle(Theme.Colours.textOnBrand)
-                                .frame(width: 84, height: 84)
-                                .background(Theme.Colours.brandGradient, in: Circle())
-
-                            Text(user.fullName)
-                                .font(Theme.Typography.title)
-                                .foregroundStyle(Theme.Colours.textPrimary)
-
-                            Text(user.email)
-                                .font(Theme.Typography.callout)
-                                .foregroundStyle(Theme.Colours.textSecondary)
-
-                            Text(user.subscriptionTier.displayName)
-                                .font(Theme.Typography.label)
-                                .foregroundStyle(Theme.Colours.brand)
-                                .padding(.horizontal, Theme.Spacing.sm)
-                                .padding(.vertical, Theme.Spacing.xxs)
-                                .background(Theme.Colours.brand.opacity(0.14), in: Capsule())
-                        }
-                        .padding(.top, Theme.Spacing.lg)
-                    }
-
-                    Button("Çıkış Yap") {
-                        Task { await session.signOut() }
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
-                }
-                .padding(.horizontal, Theme.Spacing.md)
-                .padding(.bottom, Theme.Spacing.xl)
-            }
-            .screenBackground()
-            .navigationTitle("Profil")
-            .navigationBarTitleDisplayMode(.inline)
-        }
     }
 }

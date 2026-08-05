@@ -59,7 +59,7 @@ struct CopilotView: View {
                 VStack(spacing: 2) {
                     ScoreBadge(score: latestScore, size: 40)
                     Text("Güven Skoru")
-                        .font(.system(size: 9))
+                        .font(Theme.Typography.micro)
                         .foregroundStyle(Theme.Colours.textSecondary)
                 }
             }
@@ -158,7 +158,7 @@ struct CopilotView: View {
                 } label: {
                     HStack(spacing: Theme.Spacing.xs) {
                         Image(systemName: prompt.symbolName)
-                            .font(.system(size: 13))
+                            .font(Theme.Typography.caption)
                             .foregroundStyle(Theme.Colours.brand)
                         Text(prompt.text)
                             .font(Theme.Typography.callout)
@@ -201,7 +201,7 @@ struct CopilotView: View {
                     Task { await model.send() }
                 } label: {
                     Image(systemName: "arrow.up")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(Theme.Typography.headline)
                         .foregroundStyle(Theme.Colours.textOnBrand)
                         .frame(width: 44, height: 44)
                         .background(
@@ -260,7 +260,7 @@ private struct MessageBubble: View {
                     }
 
                 Text(message.createdAt.formatted(.dateTime.hour().minute()))
-                    .font(.system(size: 10))
+                    .font(Theme.Typography.micro)
                     .foregroundStyle(Theme.Colours.textSecondary)
             }
 
@@ -274,7 +274,7 @@ private struct MessageBubble: View {
 
     private var assistantAvatar: some View {
         Text("T")
-            .font(.system(size: 13, weight: .bold))
+            .font(Theme.Typography.microBold)
             .foregroundStyle(Theme.Colours.textOnBrand)
             .frame(width: 28, height: 28)
             .background(Theme.Colours.brandGradient, in: Circle())
@@ -289,7 +289,7 @@ private struct TypingIndicator: View {
     var body: some View {
         HStack(spacing: Theme.Spacing.xs) {
             Text("T")
-                .font(.system(size: 13, weight: .bold))
+                .font(Theme.Typography.microBold)
                 .foregroundStyle(Theme.Colours.textOnBrand)
                 .frame(width: 28, height: 28)
                 .background(Theme.Colours.brandGradient, in: Circle())

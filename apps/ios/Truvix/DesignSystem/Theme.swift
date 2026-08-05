@@ -65,21 +65,46 @@ enum Theme {
 
     // MARK: - Typography
 
-    /// Every style resolves through `Font.system`, which is SF Pro on Apple
-    /// platforms and, unlike a bundled font file, scales with the reader's
-    /// Dynamic Type setting.
+    /// Every style is built from a semantic text style, so it grows with the
+    /// reader's Dynamic Type setting.
+    ///
+    /// This is deliberate and load-bearing. `Font.system(size:)` produces a
+    /// fixed size that ignores Dynamic Type entirely, and nothing at the call
+    /// site reveals it — a design system can claim to scale for months while
+    /// every screen stays pinned at one size. The text styles below happen to
+    /// resolve to the design's specified sizes at the default setting, so
+    /// fidelity is unchanged and accessibility is gained. `DynamicTypeTests`
+    /// measures this rather than trusting it.
+    ///
+    /// | Token        | Style        | Default size |
+    /// | ------------ | ------------ | ------------ |
+    /// | displayLarge | largeTitle   | 34 |
+    /// | display      | title        | 28 |
+    /// | title        | title2       | 22 |
+    /// | headline     | headline     | 17 |
+    /// | body         | callout      | 16 |
+    /// | callout      | subheadline  | 15 |
+    /// | caption      | footnote     | 13 |
+    /// | label        | caption      | 12 |
     enum Typography {
-        static let displayLarge = Font.system(size: 34, weight: .bold, design: .default)
-        static let display = Font.system(size: 28, weight: .bold, design: .default)
-        static let title = Font.system(size: 22, weight: .semibold, design: .default)
-        static let headline = Font.system(size: 17, weight: .semibold, design: .default)
-        static let body = Font.system(size: 16, weight: .regular, design: .default)
-        static let callout = Font.system(size: 15, weight: .medium, design: .default)
-        static let caption = Font.system(size: 13, weight: .regular, design: .default)
-        static let label = Font.system(size: 12, weight: .semibold, design: .default)
+        static let displayLarge = Font.system(.largeTitle, design: .default, weight: .bold)
+        static let display = Font.system(.title, design: .default, weight: .bold)
+        static let title = Font.system(.title2, design: .default, weight: .semibold)
+        static let headline = Font.system(.headline, design: .default, weight: .semibold)
+        static let body = Font.system(.callout, design: .default, weight: .regular)
+        static let callout = Font.system(.subheadline, design: .default, weight: .medium)
+        static let caption = Font.system(.footnote, design: .default, weight: .regular)
+        static let label = Font.system(.caption, design: .default, weight: .semibold)
+
         /// Monospaced digits keep prices and scores from shifting as they change.
-        static let score = Font.system(size: 28, weight: .bold, design: .rounded)
+        static let score = Font.system(.title, design: .rounded, weight: .bold)
             .monospacedDigit()
+
+        /// The smallest label the design uses, for badge counts and axis ticks.
+        static let micro = Font.system(.caption2, design: .default, weight: .medium)
+
+        /// A bold variant of `micro`, for counts that must stand out.
+        static let microBold = Font.system(.caption2, design: .default, weight: .bold)
     }
 
     // MARK: - Motion

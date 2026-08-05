@@ -52,9 +52,12 @@ struct FailureState: View {
 
     var body: some View {
         VStack(spacing: Theme.Spacing.md) {
+            // Decorative: the message below carries the meaning, so the glyph
+            // stays a fixed size rather than pushing the text off screen.
             Image(systemName: symbolName)
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(Theme.Colours.textSecondary)
+                .accessibilityHidden(true)
 
             Text(error.localizedDescription)
                 .font(Theme.Typography.body)
@@ -99,6 +102,7 @@ struct EmptyState<Action: View>: View {
                     .font(.system(size: 34, weight: .light))
                     .foregroundStyle(Theme.Colours.brand)
             }
+            .accessibilityHidden(true)
 
             Text(title)
                 .font(Theme.Typography.title)

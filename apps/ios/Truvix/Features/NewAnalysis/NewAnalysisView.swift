@@ -77,11 +77,11 @@ private struct StepIndicator: View {
 
                     if isDone {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(Theme.Typography.microBold)
                             .foregroundStyle(Theme.Colours.textOnBrand)
                     } else {
                         Text("\(step.rawValue)")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(Theme.Typography.caption)
                             .foregroundStyle(
                                 isCurrent
                                     ? Theme.Colours.textOnBrand

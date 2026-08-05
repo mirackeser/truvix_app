@@ -125,8 +125,12 @@ struct NotificationsView: View {
     @State private var model: NotificationsModel
     @State private var isShowingPreferences = false
 
-    init(api: any TruvixAPI) {
+    /// Called when an entry that concerns a vehicle is tapped.
+    private let onOpenVehicle: (UUID) -> Void
+
+    init(api: any TruvixAPI, onOpenVehicle: @escaping (UUID) -> Void = { _ in }) {
         _model = State(wrappedValue: NotificationsModel(api: api))
+        self.onOpenVehicle = onOpenVehicle
     }
 
     var body: some View {
@@ -210,7 +214,7 @@ struct NotificationsView: View {
                     .font(Theme.Typography.callout)
                 if count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(Theme.Typography.microBold)
                         .monospacedDigit()
                         .opacity(0.8)
                 }
@@ -237,7 +241,12 @@ struct NotificationsView: View {
             LazyVStack(spacing: Theme.Spacing.xs) {
                 ForEach(notifications) { notification in
                     NotificationRow(notification: notification) {
+                        // Reading and acting are one gesture: a notification
+                        // that only marks itself read is a dead end.
                         Task { await model.markRead(notification) }
+                        if let vehicleID = notification.vehicleId {
+                            onOpenVehicle(vehicleID)
+                        }
                     }
                 }
             }
@@ -269,7 +278,7 @@ private struct NotificationRow: View {
             Card(padding: Theme.Spacing.sm) {
                 HStack(alignment: .top, spacing: Theme.Spacing.sm) {
                     Image(systemName: notification.category.symbolName)
-                        .font(.system(size: 15))
+                        .font(Theme.Typography.callout)
                         .foregroundStyle(tint)
                         .frame(width: 36, height: 36)
                         .background(tint.opacity(0.14), in: Circle())
@@ -306,7 +315,14 @@ private struct NotificationRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityHint(notification.read ? "" : "Okundu işaretlemek için dokun")
+        .accessibilityHint(hint)
+    }
+
+    private var hint: String {
+        if notification.vehicleId != nil {
+            return "Aracı açmak için dokun"
+        }
+        return notification.read ? "" : "Okundu işaretlemek için dokun"
     }
 
     private var tint: Color {

@@ -27,7 +27,7 @@ struct SplashView: View {
                         .scaleEffect(logoAppeared ? 1 : 0.82)
 
                     Text("TRUVIX")
-                        .font(.system(size: 34, weight: .light))
+                        .font(Theme.Typography.displayLarge.weight(.light))
                         .kerning(10)
                         .foregroundStyle(Theme.Colours.textPrimary)
                         .opacity(wordmarkAppeared ? 1 : 0)

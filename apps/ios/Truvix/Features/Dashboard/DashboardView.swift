@@ -88,14 +88,14 @@ struct DashboardView: View {
             Button(action: onOpenNotifications) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bell")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(Theme.Typography.headline)
                         .foregroundStyle(Theme.Colours.textPrimary)
                         .frame(width: 44, height: 44)
                         .background(Theme.Colours.surface, in: Circle())
 
                     if dashboard.unreadNotifications > 0 {
                         Text("\(min(dashboard.unreadNotifications, 99))")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(Theme.Typography.microBold)
                             .foregroundStyle(Theme.Colours.textOnBrand)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -110,7 +110,7 @@ struct DashboardView: View {
 
     private var heroCard: some View {
         Button(action: onStartAnalysis) {
-            HStack(spacing: Theme.Spacing.md) {
+            AdaptiveStack(verticalAlignment: .center) {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                     Text("Yeni Analiz Başlat")
                         .font(Theme.Typography.title)
@@ -124,7 +124,7 @@ struct DashboardView: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(Theme.Typography.display)
                     .foregroundStyle(Theme.Colours.textOnBrand)
                     .frame(width: 56, height: 56)
                     .background(Theme.Colours.brandGradient, in: Circle())
@@ -252,7 +252,7 @@ struct DashboardView: View {
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
+                .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Colours.textSecondary)
         }
         .padding(Theme.Spacing.md)
@@ -306,7 +306,7 @@ private struct AnalysisCard: View {
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colours.brand)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Theme.Typography.micro)
                     .foregroundStyle(Theme.Colours.brand)
             }
             .padding(.top, Theme.Spacing.xxs)
@@ -350,7 +350,7 @@ private struct PriceDropRow: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         HStack(spacing: 2) {
                             Image(systemName: trend.hasDropped ? "arrow.down" : "arrow.up")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(Theme.Typography.microBold)
                             Text(change)
                                 .font(Theme.Typography.callout)
                         }
@@ -404,7 +404,7 @@ private struct RecommendationCard: View {
                     VStack(spacing: 2) {
                         ScoreBadge(score: score, size: 46)
                         Text("Güven Skoru")
-                            .font(.system(size: 10))
+                            .font(Theme.Typography.micro)
                             .foregroundStyle(Theme.Colours.textSecondary)
                     }
                 }
@@ -448,7 +448,7 @@ private struct SavedVehicleCard: View {
                 VehicleGlyph()
                     .frame(height: 64)
                 Image(systemName: "bookmark.fill")
-                    .font(.system(size: 12))
+                    .font(Theme.Typography.label)
                     .foregroundStyle(Theme.Colours.brand)
                     .padding(6)
             }
@@ -494,7 +494,7 @@ struct VehicleGlyph: View {
                     )
                 )
             Image(systemName: "car.side.fill")
-                .font(.system(size: 22, weight: .regular))
+                .font(Theme.Typography.title)
                 .foregroundStyle(Theme.Colours.brand.opacity(0.75))
         }
         .frame(maxWidth: .infinity)
@@ -508,7 +508,7 @@ struct StatusChip: View {
 
     var body: some View {
         Text(status.displayName)
-            .font(.system(size: 11, weight: .semibold))
+            .font(Theme.Typography.micro)
             .foregroundStyle(tint)
             .padding(.horizontal, Theme.Spacing.xs)
             .padding(.vertical, 3)
