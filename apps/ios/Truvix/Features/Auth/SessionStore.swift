@@ -80,6 +80,22 @@ final class SessionStore {
         phase = .signedIn(user)
     }
 
+    /// Re-read the signed-in account from the backend.
+    ///
+    /// Needed after anything the backend changes about the account without the
+    /// app being told — buying a subscription being the case that matters, since
+    /// the tier is derived server-side from a verified receipt.
+    func refreshProfile() async {
+        guard case .signedIn = phase else { return }
+        do {
+            phase = .signedIn(try await auth.currentUser())
+        } catch {
+            // The stale profile is better than none; a failure here must not
+            // sign anybody out.
+            logger.error("Profil yenilenemedi: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     func signOut() async {
         await auth.signOut()
         phase = .signedOut

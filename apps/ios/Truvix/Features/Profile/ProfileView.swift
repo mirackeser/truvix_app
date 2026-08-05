@@ -8,6 +8,7 @@ struct ProfileView: View {
 
     @State private var stats: GarageStats = .empty
     @State private var isConfirmingSignOut = false
+    @State private var isShowingPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -32,6 +33,22 @@ struct ProfileView: View {
         }
         .task {
             stats = (try? await api.garageStats()) ?? .empty
+        }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView(api: api)
+        }
+        .task {
+            if LaunchOverrides.opensPaywall {
+                isShowingPaywall = true
+            }
+        }
+        .onChange(of: isShowingPaywall) { _, isShowing in
+            // The plan shown here comes from the session, so a purchase made in
+            // the sheet has to be picked up when it closes or the card would
+            // still read "Ücretsiz Plan" after paying.
+            if !isShowing {
+                Task { await session.refreshProfile() }
+            }
         }
         .confirmationDialog(
             "Çıkış yapmak istediğine emin misin?",
@@ -126,13 +143,16 @@ struct ProfileView: View {
                 .foregroundStyle(Theme.Colours.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-                if !user.isPremium {
-                    // Stated plainly rather than dressed as a live offer: the
-                    // subscription is not built yet, and a button that does
-                    // nothing is worse than no button.
-                    Text("Premium yakında bu ekrandan açılabilecek.")
-                        .font(Theme.Typography.caption)
-                        .foregroundStyle(Theme.Colours.brand)
+                if user.isPremium {
+                    Button("Aboneliği yönet") {
+                        isShowingPaywall = true
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                } else {
+                    Button("Premium'a geç") {
+                        isShowingPaywall = true
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
                 }
             }
         }

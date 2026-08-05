@@ -64,6 +64,9 @@ protocol TruvixAPI: Sendable {
         _ content: String,
         conversationID: UUID
     ) async throws(APIError) -> MessageExchange
+
+    func subscriptionState() async throws(APIError) -> SubscriptionState
+    func redeem(signedTransaction: String) async throws(APIError) -> SubscriptionState
 }
 
 /// The live implementation, talking to the backend through `APIClient`.
@@ -287,6 +290,20 @@ struct LiveTruvixAPI: TruvixAPI {
                 method: .post,
                 path: "copilot/conversations/\(conversationID.uuidString.lowercased())/messages",
                 body: MessageSendRequest(content: content)
+            )
+        )
+    }
+
+    func subscriptionState() async throws(APIError) -> SubscriptionState {
+        try await client.send(APIRequest(path: "subscriptions"))
+    }
+
+    func redeem(signedTransaction: String) async throws(APIError) -> SubscriptionState {
+        try await client.send(
+            APIRequest(
+                method: .post,
+                path: "subscriptions/redeem",
+                body: RedeemRequest(signedTransaction: signedTransaction)
             )
         )
     }

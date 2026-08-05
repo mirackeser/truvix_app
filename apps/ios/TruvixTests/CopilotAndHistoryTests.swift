@@ -281,6 +281,10 @@ struct CopilotComposerTests {
         func recordPrice(
             _ price: Money, vehicleID: UUID
         ) async throws(APIError) -> PriceObservation { throw .offline }
+        func subscriptionState() async throws(APIError) -> SubscriptionState { throw .offline }
+        func redeem(signedTransaction: String) async throws(APIError) -> SubscriptionState {
+            throw .offline
+        }
     }
 
     private func model(_ api: StubAPI) -> CopilotModel {

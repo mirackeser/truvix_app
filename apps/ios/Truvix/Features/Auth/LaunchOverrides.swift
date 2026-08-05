@@ -45,11 +45,17 @@ enum LaunchOverrides {
     static var initialVehicleID: UUID? {
         UserDefaults.standard.string(forKey: "truvixOpenVehicle").flatMap(UUID.init(uuidString:))
     }
+
+    /// Whether to open straight into the paywall.
+    static var opensPaywall: Bool {
+        UserDefaults.standard.bool(forKey: "truvixOpenPaywall")
+    }
     #else
     static var automaticSignIn: (email: String, password: String)? { nil }
     static var skipsOnboarding: Bool { false }
     static var initialTab: AppTab? { nil }
     static var opensNewAnalysis: Bool { false }
     static var initialVehicleID: UUID? { nil }
+    static var opensPaywall: Bool { false }
     #endif
 }

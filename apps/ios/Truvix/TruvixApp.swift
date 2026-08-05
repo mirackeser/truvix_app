@@ -35,6 +35,14 @@ struct RootView: View {
     let auth: any AuthServicing
     let api: any TruvixAPI
 
+    /// Watches the App Store for the whole time somebody is signed in.
+    ///
+    /// Renewals, purchases approved later and purchases made on another device
+    /// arrive without the paywall being open, and each one has to reach the
+    /// backend to be verified. Owning the listener here rather than in the
+    /// paywall is what makes that happen.
+    @State private var subscriptions: SubscriptionModel?
+
     var body: some View {
         Group {
             switch session.phase {
@@ -53,6 +61,18 @@ struct RootView: View {
         .animation(Theme.Motion.standard, value: session.phase)
         .task {
             await session.restore()
+        }
+        .onChange(of: session.phase.user?.id) { _, userID in
+            guard userID != nil else {
+                // Signing out ends the listener: a transaction verified against
+                // whoever signs in next would attach the purchase to the wrong
+                // account.
+                subscriptions = nil
+                return
+            }
+            let model = SubscriptionModel(api: api)
+            model.startListeningForStoreUpdates()
+            subscriptions = model
         }
     }
 }
