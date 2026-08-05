@@ -60,12 +60,24 @@ enum APIError: LocalizedError, Sendable {
         error as? APIError ?? .unknown(error.localizedDescription)
     }
 
+    /// Whether the account has spent an allowance rather than hit a speed limit.
+    ///
+    /// Both arrive as 429, but they mean different things to the reader: one
+    /// says "wait a moment", the other says "that is all you get today" and is
+    /// the moment to mention the plan.
+    var isQuotaExhausted: Bool {
+        guard case let .server(problem) = self else { return false }
+        return problem.code == "quota_exceeded"
+    }
+
     /// Whether trying the same request again could plausibly succeed.
     var isRetryable: Bool {
         switch self {
         case .offline, .timedOut, .malformedResponse:
             true
         case let .server(problem):
+            // A spent allowance is not retryable in any useful sense: the same
+            // request will be refused until the day turns over.
             problem.status >= 500
         case .unauthorised, .unknown:
             false

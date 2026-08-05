@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from truvix.shared.errors.exceptions import (
     AccountLockedError,
+    QuotaExceededError,
     RateLimitExceededError,
     TruvixError,
 )
@@ -72,7 +73,9 @@ def _problem_response(
 async def handle_truvix_error(request: Request, exc: TruvixError) -> JSONResponse:
     """Render a deliberate domain error."""
     headers: dict[str, str] = {}
-    if isinstance(exc, RateLimitExceededError | AccountLockedError):
+    if isinstance(exc, RateLimitExceededError | AccountLockedError) or (
+        isinstance(exc, QuotaExceededError) and exc.retry_after_seconds is not None
+    ):
         headers["Retry-After"] = str(exc.retry_after_seconds)
 
     _logger.warning(

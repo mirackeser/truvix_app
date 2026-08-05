@@ -8,7 +8,7 @@ from fastapi import Depends
 
 from truvix.modules.vehicles.repository import CollectionRepository, VehicleRepository
 from truvix.modules.vehicles.service import VehicleService
-from truvix.shared.dependencies import EventBusDep, SessionDep
+from truvix.shared.dependencies import ContainerDep, EventBusDep, SessionDep
 
 
 def get_vehicle_repository(session: SessionDep) -> VehicleRepository:
@@ -29,9 +29,15 @@ def get_vehicle_service(
     vehicles: VehicleRepositoryDep,
     collections: CollectionRepositoryDep,
     events: EventBusDep,
+    container: ContainerDep,
 ) -> VehicleService:
     """Provide the garage service for the current request."""
-    return VehicleService(vehicles=vehicles, collections=collections, events=events)
+    return VehicleService(
+        vehicles=vehicles,
+        collections=collections,
+        events=events,
+        quota=container.quota,
+    )
 
 
 VehicleServiceDep = Annotated[VehicleService, Depends(get_vehicle_service)]

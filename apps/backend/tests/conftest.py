@@ -25,6 +25,7 @@ from truvix.shared.config import (
     Environment,
     LogFormat,
     ObservabilitySettings,
+    QuotaSettings,
     RedisSettings,
     SecuritySettings,
     Settings,
@@ -63,6 +64,15 @@ def settings() -> Settings:
         ),
         redis=RedisSettings(dsn=TEST_REDIS_DSN, _env_file=None),
         storage=StorageSettings(root_dir=TEST_STORAGE_DIR, _env_file=None),
+        # Small ceilings so a quota test exhausts one in a few calls
+        # rather than a hundred.
+        quota=QuotaSettings(
+            free_analyses_per_day=3,
+            premium_analyses_per_day=6,
+            free_vehicles=8,
+            premium_vehicles=16,
+            _env_file=None,
+        ),
         security=SecuritySettings(
             secret_key="test-signing-key-that-is-long-enough-for-hs256",
             argon2_time_cost=_TEST_ARGON2_TIME_COST,

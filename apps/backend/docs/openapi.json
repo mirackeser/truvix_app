@@ -318,6 +318,7 @@
         "type": "object"
       },
       "CollectionCreateRequest": {
+        "additionalProperties": false,
         "description": "Payload for creating a collection.",
         "properties": {
           "name": {
@@ -386,6 +387,7 @@
         "type": "object"
       },
       "ConversationOpenRequest": {
+        "additionalProperties": false,
         "description": "Payload for opening (or resuming) a conversation about a vehicle.",
         "properties": {
           "vehicle_id": {
@@ -684,6 +686,7 @@
         "type": "object"
       },
       "LoginRequest": {
+        "additionalProperties": false,
         "description": "Payload for exchanging credentials for a token pair.",
         "properties": {
           "email": {
@@ -706,6 +709,7 @@
         "type": "object"
       },
       "LogoutRequest": {
+        "additionalProperties": false,
         "description": "Payload for ending a single session.",
         "properties": {
           "refresh_token": {
@@ -791,6 +795,7 @@
         "type": "string"
       },
       "MessageSendRequest": {
+        "additionalProperties": false,
         "description": "Payload for sending one user message.",
         "properties": {
           "content": {
@@ -1177,6 +1182,7 @@
         "type": "object"
       },
       "PreferencesUpdateRequest": {
+        "additionalProperties": false,
         "description": "Partial update of the notification switches.",
         "properties": {
           "ai_suggestions": {
@@ -1394,6 +1400,7 @@
         "type": "object"
       },
       "PriceUpdateRequest": {
+        "additionalProperties": false,
         "description": "Payload for recording a new observed price.",
         "properties": {
           "observed_at": {
@@ -1463,6 +1470,7 @@
         "type": "object"
       },
       "RefreshRequest": {
+        "additionalProperties": false,
         "description": "Payload for exchanging a refresh token for a new pair.",
         "properties": {
           "refresh_token": {
@@ -1478,6 +1486,7 @@
         "type": "object"
       },
       "RegistrationRequest": {
+        "additionalProperties": false,
         "description": "Payload for creating a new account.",
         "properties": {
           "email": {
@@ -1708,6 +1717,7 @@
         "type": "object"
       },
       "VehicleCreateRequest": {
+        "additionalProperties": false,
         "description": "Payload for saving a vehicle to the garage.",
         "properties": {
           "asking_price": {
@@ -2117,6 +2127,7 @@
         "type": "object"
       },
       "VehicleUpdateRequest": {
+        "additionalProperties": false,
         "description": "Payload for changing a saved vehicle.\n\nEvery field is optional; only those present in the request body are applied,\nso a client can send a single changed attribute without having to resend the\nwhole record and risk clobbering a concurrent edit.",
         "properties": {
           "asking_price": {
@@ -2701,7 +2712,7 @@
     },
     "/api/v1/analyses/{analysis_id}/start": {
       "post": {
-        "description": "Starts a pending analysis and returns the finished report.",
+        "description": "Starts a pending analysis and returns the finished report. Each run counts against the account's daily allowance.",
         "operationId": "start_analysis_api_v1_analyses__analysis_id__start_post",
         "parameters": [
           {
@@ -2753,6 +2764,12 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "The account has spent today's analysis allowance."
           }
         },
         "security": [

@@ -23,12 +23,14 @@ from truvix.modules.analysis.models import (
 )
 from truvix.modules.analysis.repository import AnalysisRepository
 from truvix.modules.analysis.schemas import AnalysisSummaryResponse
+from truvix.modules.users.models import SubscriptionTier
 from truvix.modules.vehicles.repository import VehicleRepository
 from truvix.shared.config import StorageSettings
 from truvix.shared.errors import ConflictError, NotFoundError
 from truvix.shared.events import AnalysisCompleted, EventBus
 from truvix.shared.logging import get_logger
 from truvix.shared.pagination import Page, PageParams
+from truvix.shared.quota import QuotaService
 from truvix.shared.storage import LocalFileStorage, sniff_upload
 
 _logger = get_logger(__name__)
@@ -46,6 +48,7 @@ class AnalysisService:
         engine: AnalysisEngine,
         settings: StorageSettings,
         events: EventBus,
+        quota: QuotaService,
     ) -> None:
         """Initialise the service.
 
@@ -56,6 +59,7 @@ class AnalysisService:
             engine: The evaluation engine to run.
             settings: Upload size and count limits.
             events: Request-scoped bus for domain events.
+            quota: The account's consumption ceilings.
         """
         self._analyses = analyses
         self._vehicles = vehicles
@@ -63,6 +67,7 @@ class AnalysisService:
         self._engine = engine
         self._settings = settings
         self._events = events
+        self._quota = quota
 
     async def create(self, *, owner_id: uuid.UUID, vehicle_id: uuid.UUID) -> VehicleAnalysis:
         """Open a new analysis for one of the owner's vehicles.
@@ -156,7 +161,9 @@ class AnalysisService:
         )
         return photo
 
-    async def start(self, *, owner_id: uuid.UUID, analysis_id: uuid.UUID) -> VehicleAnalysis:
+    async def start(
+        self, *, owner_id: uuid.UUID, analysis_id: uuid.UUID, tier: SubscriptionTier
+    ) -> VehicleAnalysis:
         """Run a pending analysis to completion.
 
         The engine is executed within the request for now: the rule-based
@@ -168,6 +175,7 @@ class AnalysisService:
         Args:
             owner_id: The account the analysis must belong to.
             analysis_id: The analysis to run.
+            tier: The account's plan, which sets its daily allowance.
 
         Returns:
             The finished analysis with its report loaded.
@@ -175,12 +183,18 @@ class AnalysisService:
         Raises:
             NotFoundError: If the analysis is not the owner's.
             ConflictError: If the analysis is not in PENDING state.
+            QuotaExceededError: If the account has spent today's allowance.
         """
         analysis = await self._require(owner_id=owner_id, analysis_id=analysis_id)
         if analysis.status is not AnalysisStatus.PENDING:
             raise ConflictError(
                 f"The analysis cannot be started from its current state ({analysis.status.value})."
             )
+
+        # Charged before the engine runs. Every run costs a vision call over
+        # several images and a reasoning call, so an uncounted start is money
+        # already spent whatever happens next.
+        await self._quota.consume_analysis(owner_id, tier)
 
         analysis.status = AnalysisStatus.PROCESSING
         analysis.started_at = datetime.now(UTC)

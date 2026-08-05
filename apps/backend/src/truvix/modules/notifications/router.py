@@ -19,6 +19,7 @@ from truvix.modules.notifications.service import NotificationService
 from truvix.shared.dependencies import SessionDep
 from truvix.shared.errors import PROBLEM_CONTENT_TYPE
 from truvix.shared.pagination import Page, PageParamsDep
+from truvix.shared.schemas import StrictRequest
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -95,7 +96,7 @@ class PreferencesResponse(BaseModel):
         )
 
 
-class PreferencesUpdateRequest(BaseModel):
+class PreferencesUpdateRequest(StrictRequest):
     """Partial update of the notification switches."""
 
     price_changes: bool | None = None

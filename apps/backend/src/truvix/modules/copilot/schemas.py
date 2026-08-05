@@ -14,18 +14,17 @@ from truvix.modules.copilot.models import (
     CopilotMessage,
     MessageRole,
 )
+from truvix.shared.schemas import StrictRequest
 
 
-class ConversationOpenRequest(BaseModel):
+class ConversationOpenRequest(StrictRequest):
     """Payload for opening (or resuming) a conversation about a vehicle."""
 
     vehicle_id: uuid.UUID
 
 
-class MessageSendRequest(BaseModel):
+class MessageSendRequest(StrictRequest):
     """Payload for sending one user message."""
-
-    model_config = ConfigDict(str_strip_whitespace=True)
 
     content: Annotated[str, Field(min_length=1, max_length=MESSAGE_MAX_LENGTH)]
 

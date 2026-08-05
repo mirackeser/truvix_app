@@ -17,6 +17,7 @@ from truvix.shared.ai import ChatModel, OpenAIChatModel
 from truvix.shared.config import Settings
 from truvix.shared.database import Database
 from truvix.shared.logging import get_logger
+from truvix.shared.quota import QuotaService
 from truvix.shared.security import PasswordHasherService, TokenService
 from truvix.shared.storage import LocalFileStorage
 
@@ -45,6 +46,7 @@ class ApplicationContainer:
         self._password_hasher = PasswordHasherService(settings.security)
         self._token_service = TokenService(settings.security)
         self._file_storage = LocalFileStorage(settings.storage.root_dir)
+        self._quota = QuotaService(self._redis, settings.quota)
         # Public and reassignable on purpose: tests substitute a deterministic
         # fake, and None simply means AI features are disabled.
         self.chat_model: ChatModel | None = (
@@ -80,6 +82,11 @@ class ApplicationContainer:
     def file_storage(self) -> LocalFileStorage:
         """The uploaded-file store."""
         return self._file_storage
+
+    @property
+    def quota(self) -> QuotaService:
+        """The per-account consumption ceilings."""
+        return self._quota
 
     async def ping_redis(self) -> bool:
         """Verify Redis is reachable.

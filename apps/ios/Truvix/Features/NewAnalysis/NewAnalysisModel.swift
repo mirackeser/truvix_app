@@ -131,6 +131,7 @@ final class NewAnalysisModel {
     private(set) var errorMessage: String?
     private(set) var progressCaption = ""
     private(set) var finishedAnalysis: Analysis?
+    private(set) var hasExhaustedQuota = false
 
     let draft = VehicleDraft()
     var uploads: [PendingUpload] = []
@@ -213,7 +214,12 @@ final class NewAnalysisModel {
                     + "diğer bilgilerle tamamlandı."
             }
         } catch {
-            errorMessage = APIError.wrapping(error).localizedDescription
+            let failure = APIError.wrapping(error)
+            errorMessage = failure.localizedDescription
+            // A spent allowance is worth naming: the backend's message already
+            // explains it, and returning to the review step lets the user try
+            // again tomorrow without re-entering everything.
+            hasExhaustedQuota = failure.isQuotaExhausted
             step = .review
         }
     }

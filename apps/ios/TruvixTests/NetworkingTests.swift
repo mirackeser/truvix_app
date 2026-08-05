@@ -229,3 +229,42 @@ struct APIErrorTests {
         #expect(!APIError.server(clientFault).isRetryable)
     }
 }
+
+@Suite("Quota refusals")
+struct QuotaErrorTests {
+
+    private func serverError(code: String, status: Int) -> APIError {
+        .server(
+            ProblemDetail(
+                title: "Quota Exceeded",
+                status: status,
+                detail: "Günlük analiz hakkını kullandın.",
+                code: code,
+                requestID: nil
+            )
+        )
+    }
+
+    @Test("A spent allowance is recognised")
+    func exhaustedQuotaIsRecognised() {
+        #expect(serverError(code: "quota_exceeded", status: 429).isQuotaExhausted)
+    }
+
+    @Test("A speed limit is not a spent allowance")
+    func rateLimitIsNotQuota() {
+        // Both are 429; treating them alike would tell somebody to upgrade
+        // when they only needed to wait a moment.
+        #expect(!serverError(code: "rate_limit_exceeded", status: 429).isQuotaExhausted)
+    }
+
+    @Test("Retrying a spent allowance is pointless")
+    func exhaustedQuotaIsNotRetryable() {
+        #expect(!serverError(code: "quota_exceeded", status: 429).isRetryable)
+    }
+
+    @Test("Transport failures are not quota failures")
+    func transportFailuresAreNotQuota() {
+        #expect(!APIError.offline.isQuotaExhausted)
+        #expect(!APIError.unauthorised.isQuotaExhausted)
+    }
+}

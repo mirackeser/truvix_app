@@ -72,7 +72,11 @@ async def create_vehicle(
     service: VehicleServiceDep,
 ) -> VehicleResponse:
     """Save a vehicle to the caller's garage."""
-    vehicle = await service.create(owner_id=current_user.id, payload=payload)
+    vehicle = await service.create(
+        owner_id=current_user.id,
+        payload=payload,
+        tier=current_user.subscription_tier,
+    )
     return VehicleResponse.from_vehicle(vehicle)
 
 

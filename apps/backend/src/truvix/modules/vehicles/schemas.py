@@ -30,6 +30,7 @@ from truvix.modules.vehicles.models import (
     Transmission,
     Vehicle,
 )
+from truvix.shared.schemas import StrictRequest
 
 # The earliest model year worth accepting from a used-car listing.
 EARLIEST_MODEL_YEAR = 1950
@@ -84,10 +85,8 @@ MileageKm = Annotated[int, Field(ge=0, le=MAX_MILEAGE_KM)]
 Price = Annotated[Decimal, Field(ge=MIN_PRICE, le=MAX_PRICE, decimal_places=2)]
 
 
-class _VehicleFields(BaseModel):
+class _VehicleFields(StrictRequest):
     """Fields shared by the create and update payloads."""
-
-    model_config = ConfigDict(str_strip_whitespace=True)
 
     @field_validator("plate", check_fields=False)
     @classmethod
@@ -181,7 +180,7 @@ class VehicleUpdateRequest(_VehicleFields):
     is_in_comparison: bool | None = None
 
 
-class PriceUpdateRequest(BaseModel):
+class PriceUpdateRequest(StrictRequest):
     """Payload for recording a new observed price."""
 
     price: Price
@@ -338,10 +337,8 @@ class PriceHistoryResponse(BaseModel):
     trend: PriceTrend | None
 
 
-class CollectionCreateRequest(BaseModel):
+class CollectionCreateRequest(StrictRequest):
     """Payload for creating a collection."""
-
-    model_config = ConfigDict(str_strip_whitespace=True)
 
     name: Annotated[str, Field(min_length=1, max_length=COLLECTION_NAME_MAX_LENGTH)]
 

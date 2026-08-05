@@ -60,6 +60,7 @@ def get_analysis_service(
         engine=engine,
         settings=settings.storage,
         events=events,
+        quota=container.quota,
     )
 
 

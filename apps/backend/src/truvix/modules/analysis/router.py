@@ -39,6 +39,12 @@ _STATE_CONFLICT: dict[int | str, dict[str, Any]] = {
         **_PROBLEM,
     },
 }
+_QUOTA: dict[int | str, dict[str, Any]] = {
+    status.HTTP_429_TOO_MANY_REQUESTS: {
+        "description": "The account has spent today's analysis allowance.",
+        **_PROBLEM,
+    },
+}
 
 
 @router.post(
@@ -151,8 +157,11 @@ async def download_photo(
     "/{analysis_id}/start",
     response_model=AnalysisResponse,
     summary="Run an analysis",
-    description="Starts a pending analysis and returns the finished report.",
-    responses=_STATE_CONFLICT,
+    description=(
+        "Starts a pending analysis and returns the finished report. Each run "
+        "counts against the account's daily allowance."
+    ),
+    responses={**_STATE_CONFLICT, **_QUOTA},
 )
 async def start_analysis(
     analysis_id: uuid.UUID,
@@ -160,5 +169,9 @@ async def start_analysis(
     service: AnalysisServiceDep,
 ) -> AnalysisResponse:
     """Run one of the caller's pending analyses."""
-    analysis = await service.start(owner_id=current_user.id, analysis_id=analysis_id)
+    analysis = await service.start(
+        owner_id=current_user.id,
+        analysis_id=analysis_id,
+        tier=current_user.subscription_tier,
+    )
     return AnalysisResponse.from_analysis(analysis)

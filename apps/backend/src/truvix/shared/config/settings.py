@@ -140,6 +140,26 @@ class StorageSettings(BaseSettings):
     max_photos_per_analysis: Annotated[int, Field(ge=1, le=50)] = 12
 
 
+class QuotaSettings(BaseSettings):
+    """Per-account ceilings on what one user may consume.
+
+    Every analysis costs real money — a vision call over several images and a
+    reasoning call — and every upload costs storage. Without a ceiling one
+    authenticated account can spend the platform's entire AI budget and fill
+    its disk, which needs no exploit at all, only a loop.
+
+    The ceilings also give the subscription tier something to mean.
+    """
+
+    model_config = _group_config("TRUVIX_QUOTA_")
+
+    free_analyses_per_day: Annotated[int, Field(ge=1, le=1000)] = 5
+    premium_analyses_per_day: Annotated[int, Field(ge=1, le=10_000)] = 100
+
+    free_vehicles: Annotated[int, Field(ge=1, le=10_000)] = 20
+    premium_vehicles: Annotated[int, Field(ge=1, le=100_000)] = 500
+
+
 class AISettings(BaseSettings):
     """AI provider configuration.
 
@@ -196,6 +216,7 @@ class Settings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    quota: QuotaSettings = Field(default_factory=QuotaSettings)
     ai: AISettings = Field(default_factory=AISettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
 

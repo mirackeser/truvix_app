@@ -73,7 +73,12 @@
       "Bash(codesign -d --entitlements - /tmp/truvix-signed/Build/Products/Debug-iphonesimulator/Truvix.app)",
       "Bash(.venv/bin/uv add *)",
       "Bash(.venv/bin/python -c \"import PIL; print\\('Pillow', PIL.__version__\\)\")",
-      "Bash(.venv/bin/pytest tests/unit/test_vision.py -q -p no:warnings)"
+      "Bash(.venv/bin/pytest tests/unit/test_vision.py -q -p no:warnings)",
+      "Bash(mkdir -p src/truvix/shared/quota)",
+      "Bash(.venv/bin/pytest tests/integration/test_quotas.py -q -p no:warnings)",
+      "Bash(cd \"/Users/mirackeser/Desktop/Truvix_app/apps/backend\" *)",
+      "Bash(.venv/bin/pip-audit --progress-spinner off)",
+      "Bash(PYTHONPATH=src .venv/bin/python scripts/export_openapi.py)"
     ]
   }
 }

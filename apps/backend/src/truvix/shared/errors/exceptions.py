@@ -123,6 +123,36 @@ class RateLimitExceededError(TruvixError):
         self.retry_after_seconds = retry_after_seconds
 
 
+class QuotaExceededError(TruvixError):
+    """The account has spent its allowance for a metered resource.
+
+    Distinct from a rate limit: that says "too fast, wait a moment", this says
+    "that is all you get today". The separate code lets a client offer an
+    upgrade rather than a retry.
+    """
+
+    status_code = HTTPStatus.TOO_MANY_REQUESTS
+    error_code = "quota_exceeded"
+    title = "Quota Exceeded"
+
+    def __init__(self, message: str, *, retry_after_seconds: int | None = None) -> None:
+        """Initialise the error.
+
+        Args:
+            message: Human-readable explanation safe to return to the caller.
+            retry_after_seconds: Seconds until the allowance renews, when it
+                renews on a clock. A ceiling the user must make room under —
+                a full garage — has no such time and omits it.
+        """
+        details = (
+            {"retry_after_seconds": retry_after_seconds}
+            if retry_after_seconds is not None
+            else None
+        )
+        super().__init__(message, details=details)
+        self.retry_after_seconds = retry_after_seconds
+
+
 class ExternalServiceError(TruvixError):
     """A third-party dependency failed or returned an unusable response."""
 

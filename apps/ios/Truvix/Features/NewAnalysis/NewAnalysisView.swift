@@ -477,6 +477,15 @@ private struct ReviewStep: View {
                     ErrorBanner(message: message)
                 }
 
+                if model.hasExhaustedQuota {
+                    Label(
+                        "Premium ile günlük analiz hakkın artar.",
+                        systemImage: "crown.fill"
+                    )
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colours.warning)
+                }
+
                 Text("Truvix AI tüm verileri analiz ederek riskleri ve fiyat "
                     + "değerlendirmesini sunacaktır.")
                     .font(Theme.Typography.caption)

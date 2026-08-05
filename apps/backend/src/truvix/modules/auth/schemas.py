@@ -13,6 +13,7 @@ from truvix.modules.users.models import (
     SubscriptionTier,
     User,
 )
+from truvix.shared.schemas import StrictRequest
 
 # NIST SP 800-63B advises length over composition rules: long passphrases beat
 # short passwords padded with symbols, and composition rules push users toward
@@ -32,10 +33,8 @@ PasswordStr = Annotated[str, Field(min_length=PASSWORD_MIN_LENGTH, max_length=PA
 PhoneNumberStr = Annotated[str, Field(pattern=_E164_PATTERN)]
 
 
-class RegistrationRequest(BaseModel):
+class RegistrationRequest(StrictRequest):
     """Payload for creating a new account."""
-
-    model_config = ConfigDict(str_strip_whitespace=True)
 
     email: EmailStr
     password: PasswordStr
@@ -68,22 +67,20 @@ class RegistrationRequest(BaseModel):
         return self
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(StrictRequest):
     """Payload for exchanging credentials for a token pair."""
-
-    model_config = ConfigDict(str_strip_whitespace=True)
 
     email: EmailStr
     password: Annotated[str, Field(min_length=1, max_length=PASSWORD_MAX_LENGTH)]
 
 
-class RefreshRequest(BaseModel):
+class RefreshRequest(StrictRequest):
     """Payload for exchanging a refresh token for a new pair."""
 
     refresh_token: Annotated[str, Field(min_length=1)]
 
 
-class LogoutRequest(BaseModel):
+class LogoutRequest(StrictRequest):
     """Payload for ending a single session."""
 
     refresh_token: Annotated[str, Field(min_length=1)]

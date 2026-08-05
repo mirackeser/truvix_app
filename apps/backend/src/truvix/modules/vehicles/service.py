@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
+from truvix.modules.users.models import SubscriptionTier
 from truvix.modules.vehicles.models import (
     Collection,
     CollectionItem,
@@ -37,6 +38,7 @@ from truvix.shared.errors import ConflictError, NotFoundError
 from truvix.shared.events import EventBus, PriceDropped
 from truvix.shared.logging import get_logger
 from truvix.shared.pagination import Page, PageParams
+from truvix.shared.quota import QuotaService
 
 _logger = get_logger(__name__)
 
@@ -75,6 +77,7 @@ class VehicleService:
         vehicles: VehicleRepository,
         collections: CollectionRepository,
         events: EventBus,
+        quota: QuotaService,
     ) -> None:
         """Initialise the service.
 
@@ -82,12 +85,20 @@ class VehicleService:
             vehicles: Access to vehicle and price records.
             collections: Access to collection records.
             events: Request-scoped bus for domain events.
+            quota: The account's consumption ceilings.
         """
         self._vehicles = vehicles
         self._collections = collections
         self._events = events
+        self._quota = quota
 
-    async def create(self, *, owner_id: uuid.UUID, payload: VehicleCreateRequest) -> Vehicle:
+    async def create(
+        self,
+        *,
+        owner_id: uuid.UUID,
+        payload: VehicleCreateRequest,
+        tier: SubscriptionTier,
+    ) -> Vehicle:
         """Save a vehicle to the owner's garage.
 
         The asking price is also recorded as the first price observation, so a
@@ -97,10 +108,19 @@ class VehicleService:
         Args:
             owner_id: The account saving the vehicle.
             payload: Validated vehicle details.
+            tier: The account's plan, which sets its garage ceiling.
 
         Returns:
             The saved vehicle.
+
+        Raises:
+            QuotaExceededError: If the garage is already at its ceiling.
         """
+        counts = await self._vehicles.counts_for_owner(
+            owner_id=owner_id, day_start=local_day_start()
+        )
+        self._quota.assert_vehicle_allowed(current_count=counts.total, tier=tier)
+
         vehicle = Vehicle(
             user_id=owner_id,
             make=payload.make,
