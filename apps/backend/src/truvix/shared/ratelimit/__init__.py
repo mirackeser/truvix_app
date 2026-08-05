@@ -6,6 +6,7 @@ from truvix.shared.ratelimit.dependencies import (
     StrictRateLimiterDep,
     client_identifier,
     enforce_auth_rate_limit,
+    enforce_store_notification_rate_limit,
     get_rate_limiter,
     get_strict_rate_limiter,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "StrictRateLimiterDep",
     "client_identifier",
     "enforce_auth_rate_limit",
+    "enforce_store_notification_rate_limit",
     "get_rate_limiter",
     "get_strict_rate_limiter",
 ]

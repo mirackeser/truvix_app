@@ -82,6 +82,42 @@ six are sent per run. Every stage degrades independently: a failed inspection
 still produces a report, and a failed reasoning step still keeps the visual
 findings.
 
+## Subscriptions
+
+Premium is sold through In-App Purchase, because Apple's review guideline 3.1.1
+requires it for digital content consumed inside the app — billing it through a
+payment provider instead is grounds for rejection.
+
+The app sends the signed transaction StoreKit gave it to
+`POST /api/v1/subscriptions/redeem`, and nothing about it is trusted until
+three things hold:
+
+1. its certificate chain terminates at a root in
+   `TRUVIX_SUBSCRIPTION_APPLE_ROOT_CERTIFICATE_DIR`, compared by fingerprint
+   rather than by subject, since a subject line can be copied into any
+   self-signed certificate;
+2. the signature over the payload verifies, so it was not edited afterwards;
+3. the payload names this bundle, so a genuine Apple transaction issued for
+   another application cannot be redeemed here.
+
+Sandbox transactions are refused unless `TRUVIX_SUBSCRIPTION_ALLOW_SANDBOX` is
+set, and production configuration rejects that flag at startup: a sandbox
+purchase is free yet carries the same Apple signature as a real one, so the
+environment claim is the only thing separating a paying customer from anyone
+with a free test account.
+
+Set the App Store server notification URL to
+`POST /api/v1/subscriptions/notifications`. Refunds and cancellations arrive
+only that way — the app may not be running when they happen — so without it a
+refunded customer keeps premium until their paid term expires. The endpoint
+takes no token, because Apple cannot hold one; the envelope's signature is what
+authenticates it, and the transaction nested inside is verified separately.
+
+The account's tier is recomputed from its entitlements rather than toggled, so
+a lapsed subscription cannot leave an account premium because one code path
+forgot to unset it. `bundle_id` unset disables the endpoints altogether: they
+refuse every transaction rather than accept one nobody can check.
+
 ## Testing
 
 ```bash

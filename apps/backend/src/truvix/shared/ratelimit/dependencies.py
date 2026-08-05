@@ -73,6 +73,31 @@ async def enforce_auth_rate_limit(
     )
 
 
+async def enforce_store_notification_rate_limit(
+    limiter: RateLimiterDep,
+    identifier: ClientIdentifierDep,
+    settings: SettingsDep,
+) -> None:
+    """Throttle the App Store notification webhook.
+
+    Uses the fail-open limiter deliberately. The endpoint is unauthenticated and
+    does real cryptographic work, so it needs a ceiling; but if Redis is down,
+    dropping Apple's notifications would silently leave refunded customers on
+    premium, which is the worse failure. The forged payloads a flood would carry
+    are rejected on their signatures regardless.
+
+    Raises:
+        RateLimitExceededError: When the caller has exhausted its budget.
+    """
+    await _enforce(
+        limiter,
+        scope="store-notification",
+        identifier=identifier,
+        limit=settings.rate_limit.store_notification_requests_per_minute,
+        settings=settings,
+    )
+
+
 async def _enforce(
     limiter: RateLimiter,
     *,

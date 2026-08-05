@@ -12,6 +12,7 @@ from truvix.shared.config.settings import (
     SecuritySettings,
     Settings,
     StorageSettings,
+    SubscriptionSettings,
     generate_secret_key,
     get_settings,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "SecuritySettings",
     "Settings",
     "StorageSettings",
+    "SubscriptionSettings",
     "generate_secret_key",
     "get_settings",
 ]

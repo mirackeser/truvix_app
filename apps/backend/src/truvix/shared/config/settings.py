@@ -125,6 +125,13 @@ class RateLimitSettings(BaseSettings):
     authenticated_requests_per_minute: Annotated[int, Field(ge=1, le=10_000)] = 120
     anonymous_requests_per_minute: Annotated[int, Field(ge=1, le=10_000)] = 30
     auth_endpoint_requests_per_minute: Annotated[int, Field(ge=1, le=1_000)] = 10
+    store_notification_requests_per_minute: Annotated[int, Field(ge=1, le=10_000)] = 300
+    """Ceiling for the App Store notification webhook.
+
+    Set generously because Apple batches renewals and the endpoint is the only
+    way a refund reaches us. It exists because the route is unauthenticated and
+    parses certificates, so an open flood would otherwise cost real work.
+    """
 
 
 class StorageSettings(BaseSettings):
@@ -138,6 +145,45 @@ class StorageSettings(BaseSettings):
     )
     max_upload_bytes: Annotated[int, Field(ge=1024, le=100 * 1024 * 1024)] = 15 * 1024 * 1024
     max_photos_per_analysis: Annotated[int, Field(ge=1, le=50)] = 12
+
+
+class SubscriptionSettings(BaseSettings):
+    """App Store subscription verification configuration.
+
+    Without ``bundle_id`` the endpoints refuse every transaction rather than
+    accepting any: a verifier that does not know which application it serves
+    would accept a genuine Apple signature issued for somebody else's app.
+    """
+
+    model_config = _group_config("TRUVIX_SUBSCRIPTION_")
+
+    bundle_id: str | None = Field(
+        default=None,
+        description="The iOS bundle identifier a transaction must name.",
+    )
+    apple_root_certificate_dir: Path = Field(
+        default=Path("certs/apple"),
+        description=(
+            "Directory holding Apple's root certificates. They are shipped "
+            "rather than fetched: a root downloaded at runtime is a root an "
+            "attacker on the network could substitute."
+        ),
+    )
+    allow_sandbox: bool = Field(
+        default=False,
+        description=(
+            "Whether Apple's sandbox transactions are honoured. Off by default "
+            "and rejected outright in production: a sandbox purchase costs "
+            "nothing yet carries a genuine Apple signature, so honouring one "
+            "would hand premium to anybody with a free test account. Developers "
+            "testing against the sandbox turn it on deliberately."
+        ),
+    )
+
+    @property
+    def enabled(self) -> bool:
+        """Whether purchases can be verified at all."""
+        return self.bundle_id is not None
 
 
 class QuotaSettings(BaseSettings):
@@ -217,6 +263,7 @@ class Settings(BaseSettings):
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
     quota: QuotaSettings = Field(default_factory=QuotaSettings)
+    subscription: SubscriptionSettings = Field(default_factory=SubscriptionSettings)
     ai: AISettings = Field(default_factory=AISettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
 
@@ -246,6 +293,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "TRUVIX_SECURITY_SECRET_KEY must be an explicit value of at least "
                 f"{_MIN_SECRET_LENGTH} characters in {self.environment} environments"
+            )
+        if self.subscription.allow_sandbox and self.environment is Environment.PRODUCTION:
+            raise ValueError(
+                "TRUVIX_SUBSCRIPTION_ALLOW_SANDBOX must be false in production; "
+                "sandbox purchases are free and would grant premium to anyone"
             )
         if "*" in self.trusted_hosts:
             raise ValueError(

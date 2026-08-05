@@ -25,6 +25,11 @@ from truvix.modules.notifications.models import (
     NotificationCategory,
     NotificationPreference,
 )
+from truvix.modules.subscriptions.models import (
+    Entitlement,
+    EntitlementStatus,
+    StoreEnvironment,
+)
 from truvix.modules.users.models import SubscriptionTier, User, UserStatus
 from truvix.modules.vehicles.models import (
     BodyType,
@@ -51,6 +56,8 @@ __all__ = [
     "CopilotConversation",
     "CopilotMessage",
     "Currency",
+    "Entitlement",
+    "EntitlementStatus",
     "FindingCategory",
     "FindingSeverity",
     "FuelType",
@@ -66,6 +73,7 @@ __all__ = [
     "RiskFinding",
     "RiskLevel",
     "SellerType",
+    "StoreEnvironment",
     "SubscriptionTier",
     "Transmission",
     "User",
