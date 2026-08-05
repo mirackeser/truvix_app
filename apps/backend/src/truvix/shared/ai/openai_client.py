@@ -67,9 +67,7 @@ class OpenAIChatModel:
         """
         payload: dict[str, Any] = {
             "model": self._settings.model,
-            "messages": [
-                {"role": message.role.value, "content": message.content} for message in messages
-            ],
+            "messages": [self._encode(message) for message in messages],
             "temperature": self._settings.temperature,
             "max_tokens": max_output_tokens or self._settings.max_output_tokens,
         }
@@ -82,6 +80,24 @@ class OpenAIChatModel:
     async def aclose(self) -> None:
         """Release the underlying HTTP connection pool."""
         await self._client.aclose()
+
+    @staticmethod
+    def _encode(message: ChatMessage) -> dict[str, Any]:
+        """Render one message, using the content-parts form when it has images.
+
+        A message without images keeps the plain string form, which every
+        model accepts; only messages that actually carry an image need the
+        richer shape, and some models reject it otherwise.
+        """
+        if not message.images:
+            return {"role": message.role.value, "content": message.content}
+
+        parts: list[dict[str, Any]] = [{"type": "text", "text": message.content}]
+        parts.extend(
+            {"type": "image_url", "image_url": {"url": image.as_data_url()}}
+            for image in message.images
+        )
+        return {"role": message.role.value, "content": parts}
 
     async def _post_with_retry(self, payload: dict[str, Any]) -> dict[str, Any]:
         """POST the request, retrying transient provider failures."""

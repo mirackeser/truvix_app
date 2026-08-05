@@ -74,6 +74,14 @@ AI is optional. Without `TRUVIX_AI_API_KEY` the copilot reports itself
 unavailable and analyses fall back to the deterministic rule engine; nothing
 else changes.
 
+With a key configured, an analysis additionally has its photographs inspected
+by a vision model, and the findings that produces feed the reasoning step. Each
+image is reduced to a bounded size server-side before it is sent, so the cost
+of an analysis does not depend on which handset took the picture, and at most
+six are sent per run. Every stage degrades independently: a failed inspection
+still produces a report, and a failed reasoning step still keeps the visual
+findings.
+
 ## Testing
 
 ```bash

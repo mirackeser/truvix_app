@@ -355,10 +355,16 @@ private struct EvidenceStep: View {
         }
 
         for item in items where model.canAddMoreUploads {
-            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            guard let original = try? await item.loadTransferable(type: Data.self) else {
+                continue
+            }
+            // Reduced before upload: a phone photograph is megabytes, and the
+            // server reduces it again anyway before a model looks at it.
+            guard let prepared = ImagePreparation.prepareForUpload(original) else { continue }
+
             model.add(
                 PendingUpload(
-                    data: data,
+                    data: prepared,
                     filename: "photo-\(model.uploads.count + 1).jpg",
                     contentType: "image/jpeg",
                     kind: .exterior

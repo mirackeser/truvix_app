@@ -70,7 +70,10 @@
       "Bash(git commit *)",
       "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"kerem.demo@truvix.app\",\"password\":\"truvix-demo-parolasi\"}')",
       "Bash(codesign -d --entitlements - /tmp/truvix-dd/Build/Products/Debug-iphonesimulator/Truvix.app)",
-      "Bash(codesign -d --entitlements - /tmp/truvix-signed/Build/Products/Debug-iphonesimulator/Truvix.app)"
+      "Bash(codesign -d --entitlements - /tmp/truvix-signed/Build/Products/Debug-iphonesimulator/Truvix.app)",
+      "Bash(.venv/bin/uv add *)",
+      "Bash(.venv/bin/python -c \"import PIL; print\\('Pillow', PIL.__version__\\)\")",
+      "Bash(.venv/bin/pytest tests/unit/test_vision.py -q -p no:warnings)"
     ]
   }
 }

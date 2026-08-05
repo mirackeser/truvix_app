@@ -134,3 +134,71 @@ struct ContrastTests {
         #expect(ratio(brand, surface) >= largeTextMinimum)
     }
 }
+
+@Suite("Upload preparation")
+@MainActor
+struct ImagePreparationTests {
+
+    private func image(width: Int, height: Int) -> Data {
+        let size = CGSize(width: width, height: height)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let rendered = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor(red: 0.08, green: 0.7, blue: 0.5, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
+        return rendered.pngData()!
+    }
+
+    private func dimensions(of data: Data) -> CGSize? {
+        UIImage(data: data)?.size
+    }
+
+    @Test("A large photograph is reduced before upload")
+    func largePhotographIsReduced() throws {
+        let prepared = try #require(
+            ImagePreparation.prepareForUpload(image(width: 4032, height: 3024))
+        )
+
+        let size = try #require(dimensions(of: prepared))
+        #expect(max(size.width, size.height) == ImagePreparation.maximumDimension)
+    }
+
+    @Test("The aspect ratio survives the reduction")
+    func aspectRatioSurvives() throws {
+        let prepared = try #require(
+            ImagePreparation.prepareForUpload(image(width: 4000, height: 2000))
+        )
+
+        let size = try #require(dimensions(of: prepared))
+        #expect(size.width == ImagePreparation.maximumDimension)
+        #expect(size.height == ImagePreparation.maximumDimension / 2)
+    }
+
+    @Test("A small photograph is not enlarged")
+    func smallPhotographIsUntouched() throws {
+        let prepared = try #require(
+            ImagePreparation.prepareForUpload(image(width: 320, height: 240))
+        )
+
+        let size = try #require(dimensions(of: prepared))
+        #expect(size == CGSize(width: 320, height: 240))
+    }
+
+    @Test("Preparation shrinks the payload")
+    func payloadShrinks() throws {
+        // The point of the exercise: a mobile upload that finishes quickly.
+        let original = image(width: 4032, height: 3024)
+
+        let prepared = try #require(ImagePreparation.prepareForUpload(original))
+
+        #expect(prepared.count < original.count)
+    }
+
+    @Test("Bytes that are not an image are refused")
+    func nonImageIsRefused() {
+        // Returned as nil so the picker skips the file rather than uploading
+        // something the backend will reject anyway.
+        #expect(ImagePreparation.prepareForUpload(Data("not an image".utf8)) == nil)
+    }
+}

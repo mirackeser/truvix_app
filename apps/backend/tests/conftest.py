@@ -10,6 +10,8 @@ from __future__ import annotations
 import os
 import tempfile
 from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -17,6 +19,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from truvix.main import create_app
+from truvix.modules.vehicles.models import Currency, FuelType, Transmission, Vehicle
 from truvix.shared.config import (
     DatabaseSettings,
     Environment,
@@ -126,3 +129,34 @@ def _reset_settings_cache() -> Iterator[None]:
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+@pytest.fixture
+def sample_vehicle() -> Vehicle:
+    """A healthy, well-documented vehicle for engine tests."""
+    return Vehicle(
+        make="BMW",
+        model="320i",
+        model_year=datetime.now(UTC).year - 2,
+        mileage_km=20_000,
+        fuel_type=FuelType.PETROL,
+        transmission=Transmission.AUTOMATIC,
+        asking_price=Decimal("1250000.00"),
+        currency=Currency.TRY,
+        vin="WVWZZZ1JZXW000001",
+    )
+
+
+@pytest.fixture
+def weak_vehicle() -> Vehicle:
+    """An old, heavily used vehicle that already scores near the floor."""
+    return Vehicle(
+        make="Volkswagen",
+        model="Golf",
+        model_year=datetime.now(UTC).year - 30,
+        mileage_km=1_500_000,
+        fuel_type=FuelType.DIESEL,
+        transmission=Transmission.MANUAL,
+        asking_price=Decimal("120000.00"),
+        currency=Currency.TRY,
+    )

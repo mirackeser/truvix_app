@@ -33,6 +33,7 @@ from truvix.modules.analysis.models import (
     FindingCategory,
     FindingSeverity,
 )
+from truvix.modules.analysis.vision import PhotoInspector, VisualInspection
 from truvix.modules.vehicles.models import Vehicle
 from truvix.shared.ai import ChatMessage, ChatModel, ChatRole
 from truvix.shared.logging import get_logger
@@ -76,20 +77,34 @@ class _LLMReview(BaseModel):
 
 
 class LLMEnrichedEngine:
-    """Runs the base engine, then lets a chat model enrich the result."""
+    """Runs the base engine, then lets a model look and reason over the result.
 
-    def __init__(self, base: AnalysisEngine, model: ChatModel) -> None:
+    Two enrichments run in sequence. The photographs are inspected first, so
+    what the model can see becomes part of what the reasoning step is given —
+    asking for a verdict without showing it the damage in the pictures would
+    waste the pictures.
+    """
+
+    def __init__(
+        self,
+        base: AnalysisEngine,
+        model: ChatModel,
+        inspector: PhotoInspector | None = None,
+    ) -> None:
         """Initialise the engine.
 
         Args:
             base: The deterministic engine whose result is the floor.
             model: The chat model used for enrichment.
+            inspector: Looks at the photographs. Omitted when the deployment
+                has no file storage to read them from.
         """
         self._base = base
         self._model = model
+        self._inspector = inspector
 
     async def evaluate(self, vehicle: Vehicle, evidence: EvidenceSummary) -> EngineResult:
-        """Produce the base report, enriched by the model when possible.
+        """Produce the base report, enriched by what the model sees and reasons.
 
         Args:
             vehicle: The vehicle being analysed.
@@ -97,13 +112,37 @@ class LLMEnrichedEngine:
         """
         base_result = await self._base.evaluate(vehicle, evidence)
 
+        inspection = VisualInspection.none()
+        if self._inspector is not None and evidence.photos:
+            inspection = await self._inspector.inspect(list(evidence.photos))
+
+        with_vision = self._fold(base_result, inspection)
+
         try:
-            review = await self._request_review(vehicle, evidence, base_result)
+            review = await self._request_review(vehicle, evidence, with_vision)
         except Exception as exc:
             _logger.warning("llm_enrichment_skipped", reason=str(exc)[:200])
-            return base_result
+            return with_vision
 
-        return self._merge(base_result, review)
+        return self._merge(with_vision, review)
+
+    @staticmethod
+    def _fold(base: EngineResult, inspection: VisualInspection) -> EngineResult:
+        """Fold a visual inspection into the deterministic result."""
+        if not inspection.happened:
+            return base
+
+        adjusted = max(MIN_SCORE, min(MAX_SCORE, base.trust_score + inspection.score_adjustment))
+        seen_titles = {finding.title for finding in base.findings}
+        extra = tuple(
+            finding for finding in inspection.findings if finding.title not in seen_titles
+        )
+        return EngineResult(
+            trust_score=adjusted,
+            risk_level=risk_level_for(adjusted),
+            summary=base.summary,
+            findings=base.findings + extra,
+        )
 
     async def _request_review(
         self, vehicle: Vehicle, evidence: EvidenceSummary, base: EngineResult

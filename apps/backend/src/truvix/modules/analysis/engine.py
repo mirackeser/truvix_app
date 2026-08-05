@@ -17,6 +17,7 @@ from typing import Protocol
 from truvix.modules.analysis.models import (
     MAX_SCORE,
     MIN_SCORE,
+    AnalysisPhoto,
     FindingCategory,
     FindingSeverity,
     PhotoKind,
@@ -57,10 +58,16 @@ _DAMAGE_PHOTO_PENALTY = 8
 
 @dataclass(frozen=True, slots=True)
 class EvidenceSummary:
-    """What the user attached to the analysis, summarised for scoring."""
+    """What the user attached to the analysis, summarised for scoring.
+
+    The photo records themselves travel alongside the counts, so an engine that
+    can look at images has them without the workflow needing to know which
+    engines can.
+    """
 
     photo_count: int
     photo_kinds: frozenset[PhotoKind]
+    photos: tuple[AnalysisPhoto, ...] = ()
 
     @property
     def has_document(self) -> bool:

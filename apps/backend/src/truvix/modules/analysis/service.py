@@ -189,6 +189,7 @@ class AnalysisService:
         evidence = EvidenceSummary(
             photo_count=len(analysis.photos),
             photo_kinds=frozenset(photo.kind for photo in analysis.photos),
+            photos=tuple(analysis.photos),
         )
 
         try:

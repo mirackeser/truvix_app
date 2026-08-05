@@ -10,6 +10,7 @@ from truvix.modules.analysis.engine import AnalysisEngine, RuleBasedEngine
 from truvix.modules.analysis.llm_engine import LLMEnrichedEngine
 from truvix.modules.analysis.repository import AnalysisRepository
 from truvix.modules.analysis.service import AnalysisService
+from truvix.modules.analysis.vision import PhotoInspector
 from truvix.modules.vehicles.dependencies import VehicleRepositoryDep
 from truvix.shared.dependencies import ContainerDep, EventBusDep, SessionDep, SettingsDep
 
@@ -24,7 +25,11 @@ def get_analysis_engine(container: ContainerDep) -> AnalysisEngine:
     deterministic engine serves alone. Either way analyses always complete.
     """
     if container.chat_model is not None:
-        return LLMEnrichedEngine(_rule_based_engine, container.chat_model)
+        return LLMEnrichedEngine(
+            _rule_based_engine,
+            container.chat_model,
+            PhotoInspector(model=container.chat_model, storage=container.file_storage),
+        )
     return _rule_based_engine
 
 
