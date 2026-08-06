@@ -133,7 +133,8 @@
       "Bash(python3 -c \"import json;print\\(json.load\\(open\\('/tmp/login2.json'\\)\\)['tokens']['access_token']\\)\")",
       "Bash(curl -s -o /dev/null -w '   → %{http_code}  \\(200 bekleniyor\\)\\\\n' http://127.0.0.1:8000/api/v1/auth/me -H 'Authorization: Bearer __TRACKED_VAR__')",
       "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_dashboard.py -q)",
-      "Bash(python3 -c \"import json,sys;print\\('kota:',json.load\\(sys.stdin\\)['analyses_today']\\)\")"
+      "Bash(python3 -c \"import json,sys;print\\('kota:',json.load\\(sys.stdin\\)['analyses_today']\\)\")",
+      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_auth.py -q)"
     ]
   }
 }

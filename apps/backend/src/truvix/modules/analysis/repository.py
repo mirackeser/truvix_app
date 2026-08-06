@@ -201,11 +201,3 @@ class AnalysisRepository:
     async def flush(self) -> None:
         """Send pending changes to the database without committing."""
         await self._session.flush()
-
-    async def refresh_relations(self, analysis: VehicleAnalysis) -> None:
-        """Reload the analysis's photos and findings after a mutation.
-
-        Args:
-            analysis: The analysis whose relations to refresh.
-        """
-        await self._session.refresh(analysis, attribute_names=["photos", "findings"])

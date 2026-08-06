@@ -138,6 +138,8 @@ class AuthService:
         self._users.add(user)
         await self._users.flush()
 
+        await self._sweep_expired_sessions()
+
         _logger.info("user_registered", user_id=str(user.id))
         return self._start_session(user, context=context)
 
@@ -190,6 +192,8 @@ class AuthService:
         user.failed_login_attempts = 0
         user.locked_until = None
         user.last_login_at = now
+
+        await self._sweep_expired_sessions()
 
         _logger.info("login_succeeded", user_id=str(user.id))
         return self._start_session(user, context=context)
@@ -288,6 +292,22 @@ class AuthService:
             email: The address as supplied by the client.
         """
         return email.strip().lower()
+
+    async def _sweep_expired_sessions(self) -> None:
+        """Delete refresh tokens that are past their lifetime.
+
+        Rotation writes a row every time a session refreshes, so this is the
+        fastest-growing table in the schema and the one most worth keeping
+        trimmed. There is no scheduler in this deployment, so the sweep rides
+        along with signing in — frequent enough to keep up, and rare enough not
+        to sit on the refresh path, which runs orders of magnitude more often.
+
+        The expiry index makes the delete cheap, and a failure here must not
+        stop somebody signing in: the tokens are dead either way.
+        """
+        removed = await self._refresh_tokens.delete_expired(before=datetime.now(UTC))
+        if removed:
+            _logger.info("expired_sessions_swept", removed=removed)
 
     def _start_session(self, user: User, *, context: SessionContext) -> AuthenticatedSession:
         """Issue a token pair and persist the refresh side of it."""

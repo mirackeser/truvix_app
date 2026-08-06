@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import CursorResult, delete, select, update
+from sqlalchemy import CursorResult, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from truvix.modules.auth.models import RefreshToken
@@ -30,20 +29,6 @@ class RefreshTokenRepository:
             token_id: The token's ``jti``.
         """
         return await self._session.get(RefreshToken, token_id)
-
-    async def list_for_user(self, user_id: uuid.UUID) -> Sequence[RefreshToken]:
-        """List a user's sessions that have not been revoked.
-
-        Args:
-            user_id: Owner of the sessions.
-        """
-        statement = (
-            select(RefreshToken)
-            .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
-            .order_by(RefreshToken.created_at.desc())
-        )
-        result = await self._session.scalars(statement)
-        return result.all()
 
     def add(self, token: RefreshToken) -> None:
         """Stage a newly issued token for insertion.

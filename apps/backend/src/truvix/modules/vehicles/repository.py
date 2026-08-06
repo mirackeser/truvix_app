@@ -360,11 +360,6 @@ class CollectionRepository:
         )
         return await self._session.scalar(statement) is not None
 
-    async def vehicle_count(self, *, collection_id: uuid.UUID) -> int:
-        """Count the vehicles in a collection."""
-        statement = select(func.count()).where(CollectionItem.collection_id == collection_id)
-        return int(await self._session.scalar(statement) or 0)
-
     def add(self, collection: Collection) -> None:
         """Stage a new collection for insertion."""
         self._session.add(collection)

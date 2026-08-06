@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -381,3 +382,49 @@ class TestLogout:
         response = await client.post(LOGOUT_ALL_URL)
 
         assert response.status_code == _HTTP_UNAUTHORIZED
+
+
+class TestExpiredSessionsAreSweptAway:
+    """Rotation writes a row per refresh, so this table needs trimming."""
+
+    async def test_signing_in_removes_expired_sessions(
+        self, client: AsyncClient, container: ApplicationContainer
+    ) -> None:
+        await _register(client, email="sweep-owner@truvix.app")
+
+        async with container.database.transaction() as session:
+            user = await session.scalar(select(User).where(User.email == "sweep-owner@truvix.app"))
+            assert user is not None
+            token = await session.scalar(
+                select(RefreshToken).where(RefreshToken.user_id == user.id)
+            )
+            assert token is not None
+            token_id = token.id
+            token.expires_at = datetime.now(UTC) - timedelta(days=1)
+
+        # A different account signing in must clear it: the sweep is global,
+        # not limited to whoever happens to be signing in.
+        await _register(client, email="sweep-bystander@truvix.app")
+
+        async with container.database.transaction() as session:
+            remaining = await session.get(RefreshToken, token_id)
+            assert remaining is None
+
+    async def test_the_sweep_spares_live_sessions(
+        self, client: AsyncClient, container: ApplicationContainer
+    ) -> None:
+        await _register(client, email="sweep-live@truvix.app")
+
+        async with container.database.transaction() as session:
+            user = await session.scalar(select(User).where(User.email == "sweep-live@truvix.app"))
+            assert user is not None
+            token = await session.scalar(
+                select(RefreshToken).where(RefreshToken.user_id == user.id)
+            )
+            assert token is not None
+            token_id = token.id
+
+        await _register(client, email="sweep-unrelated@truvix.app")
+
+        async with container.database.transaction() as session:
+            assert await session.get(RefreshToken, token_id) is not None
