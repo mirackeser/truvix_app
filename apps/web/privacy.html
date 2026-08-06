@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gizlilik Politikası · Truvix</title>
+    <meta
+      name="description"
+      content="Truvix'in hangi verileri işlediği, neden işlediği ve haklarını nasıl kullanabileceğin."
+    />
+    <link rel="stylesheet" href="assets/style.css" />
+    <script src="assets/config.js"></script>
+    <script src="assets/site.js" defer></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <a class="wordmark" href="/">TRUVIX</a>
+      </header>
+
+      <main>
+        <h1>Gizlilik Politikası</h1>
+        <p class="subtitle">
+          Son güncelleme: <span data-updated></span>
+        </p>
+
+        <p>
+          Bu metin, Truvix mobil uygulamasını kullandığında hangi verilerin
+          işlendiğini, neden işlendiğini ve bu veriler üzerindeki haklarını
+          anlatır. 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK)
+          kapsamında veri sorumlusu <strong data-site="legalName"></strong>'dir.
+        </p>
+
+        <h2>1. İşlenen veriler</h2>
+        <p>
+          Aşağıdaki tablo, uygulamanın gerçekte sakladığı her veri türünü
+          listeler. Burada yazmayan bir veri toplanmaz.
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Veri</th>
+              <th>Neden</th>
+              <th>Nereden</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>E-posta adresi, ad soyad, isteğe bağlı telefon numarası</td>
+              <td>Hesabın oluşturulması ve girişin yapılması</td>
+              <td>Senin girdiğin bilgiler</td>
+            </tr>
+            <tr>
+              <td>Şifre (Argon2id ile geri döndürülemez biçimde özetlenmiş)</td>
+              <td>Girişin doğrulanması</td>
+              <td>Senin girdiğin bilgi</td>
+            </tr>
+            <tr>
+              <td>
+                Araç bilgileri: marka, model, yıl, kilometre, yakıt, vites,
+                fiyat, ilan bağlantısı ve senin eklediğin notlar
+              </td>
+              <td>Analiz yapılması ve garajının tutulması</td>
+              <td>Senin girdiğin bilgiler</td>
+            </tr>
+            <tr>
+              <td>Yüklediğin fotoğraflar ve belgeler</td>
+              <td>Görsel hasar analizi ve rapor üretimi</td>
+              <td>Senin yüklediklerin</td>
+            </tr>
+            <tr>
+              <td>Analiz sonuçları, risk bulguları ve puanlar</td>
+              <td>Raporun gösterilmesi ve geçmişinin tutulması</td>
+              <td>Uygulama tarafından üretilir</td>
+            </tr>
+            <tr>
+              <td>Copilot sohbet geçmişin</td>
+              <td>Sohbetin devamlılığı</td>
+              <td>Senin yazdıkların ve üretilen yanıtlar</td>
+            </tr>
+            <tr>
+              <td>Fiyat takibi kayıtları ve bildirimlerin</td>
+              <td>Takip ettiğin araçlardaki değişiklikleri bildirmek</td>
+              <td>Senin girdiğin fiyatlar</td>
+            </tr>
+            <tr>
+              <td>Oturum kayıtları: IP adresi, cihaz/tarayıcı bilgisi, zaman</td>
+              <td>
+                Hesabının güvenliği, çalınan oturumun tespiti ve
+                sonlandırılması
+              </td>
+              <td>Bağlantı bilgisinden otomatik</td>
+            </tr>
+            <tr>
+              <td>
+                Başarısız giriş sayısı ve hesap kilit süresi
+              </td>
+              <td>Şifre deneme saldırılarına karşı koruma</td>
+              <td>Otomatik</td>
+            </tr>
+            <tr>
+              <td>
+                Abonelik kayıtları: Apple işlem numarası, ürün, durum, tarihler
+              </td>
+              <td>Premium hakkının doğrulanması</td>
+              <td>Apple'ın imzalı satın alma bildirimi</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          <strong>Ödeme bilgin bize ulaşmaz.</strong> Abonelik satın alımı
+          tamamen Apple üzerinden yapılır; kart bilgilerini görmeyiz, saklamayız
+          ve saklayamayız. Bize yalnızca Apple'ın imzaladığı, satın almanın
+          gerçekleştiğini bildiren bir kayıt gelir.
+        </p>
+
+        <h2>2. Yapay zekâ ile paylaşılanlar</h2>
+        <p>
+          Analiz ve Copilot özellikleri OpenAI'ın modellerini kullanır. Bir
+          analiz çalıştırdığında OpenAI'a gönderilenler şunlardır:
+        </p>
+        <ul>
+          <li>
+            Girdiğin araç bilgileri (marka, model, yıl, kilometre, fiyat gibi)
+          </li>
+          <li>
+            Yüklediğin fotoğraflardan en fazla altı tanesi. Fotoğraflar
+            gönderilmeden önce sunucuda en uzun kenarı 1024 piksel olacak
+            şekilde küçültülür
+          </li>
+          <li>Copilot'a yazdığın mesajlar ve ilgili aracın bilgileri</li>
+        </ul>
+        <p>
+          Adın, e-posta adresin, telefon numaran ve hesap bilgilerin OpenAI'a
+          <strong>gönderilmez</strong>. OpenAI'ın API üzerinden gelen verileri
+          model eğitimi için kullanmadığını beyan ettiğini not ederiz; bu
+          taahhüdün güncel hâli için OpenAI'ın kendi koşullarına bakabilirsin.
+        </p>
+
+        <h2>3. Diğer paylaşımlar</h2>
+        <ul>
+          <li>
+            <strong>E-posta sağlayıcımız:</strong> Doğrulama ve bilgilendirme
+            e-postalarını iletmek için e-posta adresin kullanılır.
+          </li>
+          <li>
+            <strong>Apple:</strong> Abonelik doğrulaması ve iade/iptal
+            bildirimleri Apple ile karşılıklı yürür.
+          </li>
+          <li>
+            <strong>Barındırma sağlayıcımız:</strong> Veriler sunucularımızın
+            bulunduğu altyapıda saklanır.
+          </li>
+        </ul>
+        <p>
+          Bunların dışında kişisel verilerin satılmaz, reklam amacıyla
+          paylaşılmaz ve üçüncü taraflara pazarlama için devredilmez. Yasal bir
+          zorunluluk (mahkeme kararı gibi) hâlinde yalnızca istenen kapsamda
+          paylaşım yapılır.
+        </p>
+
+        <h2>4. Saklama süresi ve silme</h2>
+        <p>
+          Verilerin hesabın var olduğu sürece saklanır. Uygulamadaki
+          <em>Profil → Hesabımı Sil</em> adımını tamamladığında hesabın, garajın,
+          analizlerin, sohbetlerin, bildirimlerin ve yüklediğin tüm fotoğraflar
+          kalıcı olarak silinir. Bu bir "pasife alma" işlemi değildir; kayıtlar
+          veritabanından ve dosyalar diskten kaldırılır ve geri getirilemez.
+        </p>
+        <p>
+          Hesabını silmek App Store aboneliğini iptal etmez. Aboneliği Apple
+          Kimliği ayarlarından ayrıca iptal etmen gerekir.
+        </p>
+
+        <h2>5. Güvenlik</h2>
+        <ul>
+          <li>Şifreler Argon2id ile özetlenir; düz metin şifre saklanmaz.</li>
+          <li>
+            Bağlantılar TLS ile şifrelenir; oturum anahtarları cihazında iOS
+            Keychain'de tutulur.
+          </li>
+          <li>
+            Oturum yenileme anahtarları her kullanımda döndürülür; aynı anahtarın
+            ikinci kez kullanılması hırsızlık işareti sayılır ve o hesabın tüm
+            oturumları iptal edilir.
+          </li>
+          <li>
+            E-posta doğrulama bağlantıları özetlenerek saklanır, tek kullanımlıktır
+            ve süre sonunda geçersiz olur.
+          </li>
+          <li>
+            Her sorgu hesap sahibine göre daraltılır; başka bir hesaba ait kayıt
+            istendiğinde sistem "bulunamadı" yanıtı verir, kaydın varlığını dahi
+            doğrulamaz.
+          </li>
+        </ul>
+
+        <h2>6. Çocuklar</h2>
+        <p>
+          Truvix 18 yaşın altındaki kişilere yönelik değildir ve bilerek onlardan
+          veri toplamaz.
+        </p>
+
+        <h2>7. Hakların</h2>
+        <p>
+          KVKK madde 11 uyarınca; verilerinin işlenip işlenmediğini öğrenme,
+          bilgi talep etme, düzeltilmesini veya silinmesini isteme, işlemeye
+          itiraz etme ve verilerini taşınabilir biçimde alma haklarına sahipsin.
+          Silme hakkını uygulamadan kendin anında kullanabilirsin; diğer talepler
+          için <a data-site="contactEmail" href="mailto:"></a> adresine
+          yazabilirsin. Talepler en geç 30 gün içinde yanıtlanır.
+        </p>
+        <p>
+          Sonuçtan memnun kalmazsan Kişisel Verileri Koruma Kurumu'na şikâyette
+          bulunabilirsin.
+        </p>
+
+        <h2>8. Değişiklikler</h2>
+        <p>
+          Bu metin değiştiğinde bu sayfadaki tarih güncellenir. Önemli
+          değişikliklerde uygulama üzerinden ayrıca bilgilendirilirsin.
+        </p>
+
+        <h2>9. İletişim</h2>
+        <div class="card">
+          <p style="margin-top: 0">
+            <strong data-site="legalName"></strong><br />
+            <span data-site="address"></span><br />
+            Vergi dairesi: <span data-site="taxOffice"></span> ·
+            Vergi no: <span data-site="taxNumber"></span><br />
+            <a data-site="contactEmail" href="mailto:"></a>
+          </p>
+        </div>
+      </main>
+
+      <footer class="colophon">
+        <a href="terms.html">Kullanım Koşulları</a>
+        <a href="privacy.html">Gizlilik Politikası</a>
+      </footer>
+    </div>
+
+    <script>
+      // The contact address is both the link text and its target.
+      document.addEventListener("DOMContentLoaded", function () {
+        var email = (window.TRUVIX_SITE || {}).contactEmail;
+        if (!email) {
+          return;
+        }
+        Array.prototype.forEach.call(
+          document.querySelectorAll('a[data-site="contactEmail"]'),
+          function (node) {
+            node.setAttribute("href", "mailto:" + email);
+          }
+        );
+      });
+    </script>
+  </body>
+</html>

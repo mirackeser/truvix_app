@@ -119,7 +119,10 @@
       "Bash(psql -qtA -d truvix -c \"select column_name||' : '||data_type from information_schema.columns where table_name='refresh_tokens' order by ordinal_position\")",
       "Bash(psql -qtA -d truvix -c \"select tablename from pg_tables where schemaname='public' order by 1\")",
       "Bash(psql -qtA -d truvix -c ' *)",
-      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_account_deletion.py -q)"
+      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_account_deletion.py -q)",
+      "Bash(curl -s -i -X OPTIONS http://127.0.0.1:8000/api/v1/auth/email/verify -H 'Origin: http://127.0.0.1:4173' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: content-type')",
+      "Bash(pkill -f \"uvicorn truvix.main:app\")",
+      "Bash(pkill -f \"http.server 4173\")"
     ]
   }
 }

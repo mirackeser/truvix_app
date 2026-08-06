@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Truvix · İkinci el araç analizi</title>
+    <meta
+      name="description"
+      content="Truvix, ikinci el araç ilanlarını fotoğraflar ve bilgilerle değerlendirip riskli noktaları işaretler."
+    />
+    <link rel="stylesheet" href="assets/style.css" />
+    <script src="assets/config.js"></script>
+    <script src="assets/site.js" defer></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <a class="wordmark" href="/">TRUVIX</a>
+      </header>
+
+      <main>
+        <h1>Aracı almadan önce emin ol</h1>
+        <p class="subtitle">
+          Truvix, ilandaki bilgileri ve yüklediğin fotoğrafları değerlendirir,
+          riskli görünen noktaları işaretler ve neye dikkat etmen gerektiğini
+          anlatır.
+        </p>
+
+        <div class="card">
+          <p style="margin-top: 0">
+            Truvix bir ekspertiz raporu değildir. Yetkili bir ekspertiz
+            kuruluşunun incelemesinin, tramer sorgusunun veya bir ustanın
+            fiziksel kontrolünün yerine geçmez — kararı kolaylaştırmak için
+            vardır, kararı vermek için değil.
+          </p>
+        </div>
+
+        <h2>Yardım ve iletişim</h2>
+        <p>
+          Sorun, öneri veya verilerinle ilgili talepler için
+          <a data-site="contactEmail" href="mailto:"></a> adresine
+          yazabilirsin.
+        </p>
+      </main>
+
+      <footer class="colophon">
+        <a href="terms.html">Kullanım Koşulları</a>
+        <a href="privacy.html">Gizlilik Politikası</a>
+      </footer>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        var email = (window.TRUVIX_SITE || {}).contactEmail;
+        if (!email) {
+          return;
+        }
+        Array.prototype.forEach.call(
+          document.querySelectorAll('a[data-site="contactEmail"]'),
+          function (node) {
+            node.setAttribute("href", "mailto:" + email);
+          }
+        );
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>E-posta Doğrulama · Truvix</title>
+    <meta name="description" content="Truvix hesabının e-posta adresini doğrula." />
+    <!-- The link carries a single-use token. Keeping it out of referrers stops
+         it leaking to anything this page loads or links to. -->
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="stylesheet" href="assets/style.css" />
+    <script src="assets/config.js"></script>
+    <script src="assets/site.js" defer></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <a class="wordmark" href="/">TRUVIX</a>
+      </header>
+
+      <main>
+        <div class="card status" id="status" role="status" aria-live="polite">
+          <div class="spinner" id="spinner" aria-hidden="true"></div>
+          <p class="status__title" id="title">Doğrulanıyor…</p>
+          <p class="status__detail" id="detail">Bu birkaç saniye sürebilir.</p>
+        </div>
+      </main>
+
+      <footer class="colophon">
+        <a href="terms.html">Kullanım Koşulları</a>
+        <a href="privacy.html">Gizlilik Politikası</a>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var status = document.getElementById("status");
+        var spinner = document.getElementById("spinner");
+        var title = document.getElementById("title");
+        var detail = document.getElementById("detail");
+
+        /**
+         * Show a final state.
+         *
+         * @param {boolean} ok Whether the address was verified.
+         * @param {string} heading The headline.
+         * @param {string} message What to do next, if anything.
+         */
+        function finish(ok, heading, message) {
+          spinner.remove();
+          status.classList.add(ok ? "status--success" : "status--failure");
+
+          var icon = document.createElement("div");
+          icon.className = "status__icon";
+          icon.setAttribute("aria-hidden", "true");
+          icon.textContent = ok ? "✓" : "✕";
+          status.insertBefore(icon, title);
+
+          title.textContent = heading;
+          detail.textContent = message;
+        }
+
+        var token = new URLSearchParams(window.location.search).get("token");
+        if (!token) {
+          finish(
+            false,
+            "Bağlantı eksik",
+            "Bu sayfaya e-postandaki bağlantıdan gelmen gerekiyor. " +
+              "Bağlantıyı kopyalarken bir kısmı eksik kalmış olabilir."
+          );
+          return;
+        }
+
+        var base = (window.TRUVIX_SITE && window.TRUVIX_SITE.apiBaseUrl) || "";
+
+        fetch(base + "/auth/email/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: token }),
+        })
+          .then(function (response) {
+            if (response.ok) {
+              finish(
+                true,
+                "E-posta adresin doğrulandı",
+                "Truvix uygulamasına dönebilirsin. Bu sayfayı kapatabilirsin."
+              );
+              return;
+            }
+            // The backend answers with a problem document whose detail is
+            // written for the person reading it, so it is shown as it stands
+            // rather than being replaced with something vaguer.
+            return response
+              .json()
+              .catch(function () {
+                return null;
+              })
+              .then(function (problem) {
+                finish(
+                  false,
+                  "Doğrulanamadı",
+                  (problem && problem.detail) ||
+                    "Bağlantı geçersiz veya süresi dolmuş. " +
+                      "Uygulamadaki profil ekranından yeni bir bağlantı isteyebilirsin."
+                );
+              });
+          })
+          .catch(function () {
+            finish(
+              false,
+              "Bağlantı kurulamadı",
+              "Sunucuya ulaşılamadı. İnternet bağlantını kontrol edip sayfayı yenile."
+            );
+          })
+          .finally(function () {
+            // The token is single use and now spent, so it should not sit in
+            // the address bar to be shared, bookmarked or read over a shoulder.
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState({}, "", window.location.pathname);
+            }
+          });
+      })();
+    </script>
+  </body>
+</html>

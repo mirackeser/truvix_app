@@ -94,6 +94,11 @@ cancelled by asking for another.
 An unknown link and an expired one are refused identically, so the refusal
 cannot be used to learn which tokens exist.
 
+The link points at a page in `apps/web`, which posts the token back here. That
+page is on a different origin to the API, so `TRUVIX_CORS_ALLOWED_ORIGINS` has
+to name it — otherwise the browser blocks the request and the person sees a
+network error with nothing to act on.
+
 Delivery is SMTP rather than a vendor SDK, so choosing a provider is a
 configuration change. With `TRUVIX_EMAIL_HOST` unset the application logs the
 message instead of sending it — development sees the link in the log and needs
