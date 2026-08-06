@@ -10,6 +10,7 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Self
 
+import httpx
 from redis.asyncio import ConnectionPool, Redis
 from redis.exceptions import RedisError
 
@@ -17,6 +18,7 @@ from truvix.shared.ai import ChatModel, OpenAIChatModel
 from truvix.shared.config import Settings
 from truvix.shared.database import Database
 from truvix.shared.logging import get_logger
+from truvix.shared.push import PushSender, build_push_sender
 from truvix.shared.quota import QuotaService
 from truvix.shared.security import PasswordHasherService, TokenService
 from truvix.shared.storage import LocalFileStorage
@@ -52,6 +54,17 @@ class ApplicationContainer:
         self.chat_model: ChatModel | None = (
             OpenAIChatModel(settings.ai) if settings.ai.enabled else None
         )
+
+        # APNs speaks only HTTP/2, and a client without it fails with an error
+        # that does not mention HTTP/2. One client for the process, so the
+        # connection to Apple is reused rather than renegotiated per push.
+        self._push_client = httpx.AsyncClient(http2=True, timeout=10.0)
+        self._push_sender = build_push_sender(settings.apns, self._push_client)
+
+    @property
+    def push_sender(self) -> PushSender:
+        """Delivers notifications to devices."""
+        return self._push_sender
 
     @property
     def settings(self) -> Settings:
@@ -106,6 +119,7 @@ class ApplicationContainer:
         """Release every held resource. Safe to call once during shutdown."""
         if isinstance(self.chat_model, OpenAIChatModel):
             await self.chat_model.aclose()
+        await self._push_client.aclose()
         await self._redis.aclose()
         await self._redis_pool.disconnect()
         await self._database.dispose()

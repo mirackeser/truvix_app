@@ -2,6 +2,7 @@
 
 from truvix.shared.config.settings import (
     AISettings,
+    ApnsSettings,
     DatabaseSettings,
     EmailSettings,
     Environment,
@@ -20,6 +21,7 @@ from truvix.shared.config.settings import (
 
 __all__ = [
     "AISettings",
+    "ApnsSettings",
     "DatabaseSettings",
     "EmailSettings",
     "Environment",

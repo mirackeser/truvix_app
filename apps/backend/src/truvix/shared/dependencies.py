@@ -51,6 +51,10 @@ async def get_session(container: ContainerDep) -> AsyncIterator[AsyncSession]:
     async with container.database.transaction() as session:
         bus = EventBus()
         session.info["event_bus"] = bus
+        # Carried on the session so event handlers can reach it: they are given
+        # only the session and the event, and this is where the bus already
+        # travels.
+        session.info["push_sender"] = container.push_sender
         yield session
         await dispatch_pending(session, bus)
 

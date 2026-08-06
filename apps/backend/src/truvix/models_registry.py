@@ -25,6 +25,7 @@ from truvix.modules.auth.models import (
 )
 from truvix.modules.copilot.models import CopilotConversation, CopilotMessage, MessageRole
 from truvix.modules.notifications.models import (
+    DeviceToken,
     Notification,
     NotificationCategory,
     NotificationPreference,
@@ -60,6 +61,7 @@ __all__ = [
     "CopilotConversation",
     "CopilotMessage",
     "Currency",
+    "DeviceToken",
     "EmailVerificationToken",
     "Entitlement",
     "EntitlementStatus",

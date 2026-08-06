@@ -43,6 +43,20 @@ private final class StubAuth: AuthServicing, @unchecked Sendable {
         resetRequestedFor.append(email)
         if let resetError { throw resetError }
     }
+
+    var deviceError: APIError?
+    private(set) var registeredTokens: [String] = []
+    private(set) var unregisteredTokens: [String] = []
+
+    func registerDevice(token: String) async throws(APIError) {
+        registeredTokens.append(token)
+        if let deviceError { throw deviceError }
+    }
+
+    func unregisterDevice(token: String) async throws(APIError) {
+        unregisteredTokens.append(token)
+        if let deviceError { throw deviceError }
+    }
 }
 
 @Suite("Email verification")

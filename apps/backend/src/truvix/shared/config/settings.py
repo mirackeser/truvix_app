@@ -241,6 +241,49 @@ class EmailSettings(BaseSettings):
         return self.host is not None
 
 
+class ApnsSettings(BaseSettings):
+    """Apple Push Notification service credentials.
+
+    Token-based rather than certificate-based: a p8 signing key does not expire,
+    where a push certificate does and takes notifications down on a day nobody
+    is watching. With no key configured the application logs what it would have
+    sent, so development needs no Apple account.
+    """
+
+    model_config = _group_config("TRUVIX_APNS_")
+
+    key_id: str | None = Field(default=None, description="The p8 key's identifier, from Apple.")
+    team_id: str | None = Field(default=None, description="The Apple Developer team id.")
+    private_key: SecretStr | None = Field(
+        default=None,
+        description=(
+            "The p8 signing key, PEM encoded. Supplied whole, newlines and all; "
+            "a key mangled into one line will not parse."
+        ),
+    )
+    bundle_id: str | None = Field(
+        default=None, description="The app's bundle id, sent as the APNs topic."
+    )
+    use_sandbox: bool = Field(
+        default=True,
+        description=(
+            "Whether to send to Apple's sandbox. Development builds register "
+            "sandbox tokens, which the production host rejects outright, so "
+            "this must match how the app was built."
+        ),
+    )
+
+    @property
+    def configured(self) -> bool:
+        """Whether notifications can actually be sent."""
+        return all((self.key_id, self.team_id, self.private_key, self.bundle_id))
+
+    @property
+    def signing_key(self) -> str:
+        """The raw signing key, unwrapped from its secret container."""
+        return self.private_key.get_secret_value() if self.private_key else ""
+
+
 class QuotaSettings(BaseSettings):
     """Per-account ceilings on what one user may consume.
 
@@ -318,6 +361,7 @@ class Settings(BaseSettings):
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
+    apns: ApnsSettings = Field(default_factory=ApnsSettings)
     quota: QuotaSettings = Field(default_factory=QuotaSettings)
     subscription: SubscriptionSettings = Field(default_factory=SubscriptionSettings)
     ai: AISettings = Field(default_factory=AISettings)

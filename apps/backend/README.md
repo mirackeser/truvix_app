@@ -105,6 +105,32 @@ message instead of sending it — development sees the link in the log and needs
 no mail server. A mail server that is down does not fail a registration: the
 account exists, and another link can be asked for.
 
+## Push notifications
+
+A notification is recorded and then pushed to every device the account has
+registered. Without that, "the car you are watching got cheaper" only arrives
+if somebody happens to open the app — which is the one moment they do not need
+telling.
+
+Authentication is token-based: a p8 signing key does not expire, where a push
+certificate does, and it takes notifications down on a day nobody is watching.
+The provider token is a short-lived JWT, cached and reissued on Apple's
+schedule.
+
+Delivery is best effort by design. The notification is already readable in the
+app, so a push that does not arrive is a missed prompt rather than lost data —
+and a failed push must not undo the price drop it was announcing. A token Apple
+reports as dead is deleted rather than retried forever.
+
+Devices register with `PUT /api/v1/notifications/devices` — a PUT because the
+app calls it on every launch, iOS having reissued the token whenever it liked.
+The token is unique across accounts, so signing in on a shared handset moves the
+registration instead of leaving the previous occupant subscribed to a stranger's
+alerts.
+
+With `TRUVIX_APNS_PRIVATE_KEY` unset the application logs what it would have
+sent, so development and the test suite need no Apple account.
+
 ## Quotas
 
 `GET /api/v1/dashboard` reports what today's analysis allowance has left, and

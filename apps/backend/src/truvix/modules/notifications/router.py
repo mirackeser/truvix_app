@@ -6,17 +6,20 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Any, Self
 
-from fastapi import APIRouter, Query, status
-from pydantic import BaseModel, ConfigDict
+from fastapi import APIRouter, Depends, Query, status
+from pydantic import BaseModel, ConfigDict, Field
 
 from truvix.modules.auth.dependencies import CurrentUserDep
+from truvix.modules.notifications.devices import DeviceRegistry
 from truvix.modules.notifications.models import (
+    DEVICE_TOKEN_MAX_LENGTH,
+    DeviceToken,
     Notification,
     NotificationCategory,
     NotificationPreference,
 )
 from truvix.modules.notifications.service import NotificationService
-from truvix.shared.dependencies import SessionDep
+from truvix.shared.dependencies import ContainerDep, SessionDep
 from truvix.shared.errors import PROBLEM_CONTENT_TYPE
 from truvix.shared.pagination import Page, PageParamsDep
 from truvix.shared.schemas import StrictRequest
@@ -34,6 +37,29 @@ _NOT_FOUND: dict[int | str, dict[str, Any]] = {
         **_PROBLEM,
     },
 }
+
+
+class RegisterDeviceRequest(StrictRequest):
+    """The APNs token iOS handed the app."""
+
+    token: Annotated[str, Field(min_length=32, max_length=DEVICE_TOKEN_MAX_LENGTH)]
+
+
+class DeviceResponse(BaseModel):
+    """A registered device."""
+
+    id: uuid.UUID
+    last_seen_at: datetime
+
+    @classmethod
+    def from_device(cls, device: DeviceToken) -> Self:
+        """Build the response from a stored registration.
+
+        Deliberately does not echo the token back. Nothing needs it — the app
+        already holds it — and a value that never leaves the server cannot be
+        read out of a log or an intermediary's cache.
+        """
+        return cls(id=device.id, last_seen_at=device.last_seen_at)
 
 
 class NotificationResponse(BaseModel):
@@ -231,3 +257,71 @@ async def update_preferences(
     }
     preferences = await _service(session).update_preferences(current_user.id, changes=changes)
     return PreferencesResponse.from_preferences(preferences)
+
+
+def get_device_registry(session: SessionDep, container: ContainerDep) -> DeviceRegistry:
+    """Provide the device registry for the current request."""
+    return DeviceRegistry(session, container.push_sender)
+
+
+DeviceRegistryDep = Annotated[DeviceRegistry, Depends(get_device_registry)]
+
+
+@router.put(
+    "/devices",
+    response_model=DeviceResponse,
+    summary="Register this device",
+    description=(
+        "Records that the signed-in account's notifications should reach this "
+        "device. Idempotent: registering the same token twice updates the "
+        "existing registration rather than adding a second."
+    ),
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Access token missing or invalid.",
+            **_PROBLEM,
+        }
+    },
+)
+async def register_device(
+    payload: RegisterDeviceRequest,
+    current_user: CurrentUserDep,
+    devices: DeviceRegistryDep,
+) -> DeviceResponse:
+    """Register this device for the signed-in account.
+
+    A PUT rather than a POST because the app calls it on every launch — iOS
+    reissues the token whenever it likes, and the app cannot tell whether this
+    one is new. Registering is therefore something to state, not something to
+    create.
+    """
+    device = await devices.register(user_id=current_user.id, token=payload.token)
+    return DeviceResponse.from_device(device)
+
+
+@router.delete(
+    "/devices",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Stop notifications on this device",
+    description="Forgets a device token, so notifications stop reaching it.",
+    responses={
+        status.HTTP_204_NO_CONTENT: {"description": "The device is forgotten."},
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Access token missing or invalid.",
+            **_PROBLEM,
+        },
+    },
+)
+async def unregister_device(
+    payload: RegisterDeviceRequest,
+    current_user: CurrentUserDep,
+    devices: DeviceRegistryDep,
+) -> None:
+    """Forget this device.
+
+    Called when signing out. The token is discarded whether or not it belonged
+    to the caller: a device somebody is signing out of should stop receiving
+    notifications either way, and refusing would leave the previous occupant
+    subscribed.
+    """
+    await devices.unregister(token=payload.token)

@@ -58,6 +58,30 @@ xcrun simctl launch booted app.truvix.ios \
 `truvixSkipOnboarding`, `truvixOpenNewAnalysis` and `truvixOpenVehicle` work the
 same way.
 
+## Push notifications
+
+Permission is asked for once the shell is on screen, not at launch. iOS prompts
+only once, so a refusal is close to permanent, and a prompt shown before
+somebody knows what the app does is usually refused.
+
+The device token is registered on every launch rather than once: iOS reissues it
+after a restore, an update, or for no reason at all, and the backend's endpoint
+is idempotent so repeating it costs nothing. Signing out unregisters, because
+the next person to use the handset must not receive somebody else's alerts.
+
+The simulator cannot obtain a real APNs token, so end-to-end delivery has to be
+checked on a device. A notification can still be faked locally, which exercises
+the tap handling:
+
+```bash
+xcrun simctl push booted app.truvix.ios payload.json
+```
+
+`aps-environment` is `development` in the entitlements. The App Store rewrites
+it to `production` when it re-signs the archive, so a release build needs no
+separate value — but a TestFlight build talks to Apple's production push host,
+which is why `TRUVIX_APNS_USE_SANDBOX` has to match how the app was built.
+
 ## Subscriptions
 
 Premium is sold through StoreKit 2. The app never decides what an account is

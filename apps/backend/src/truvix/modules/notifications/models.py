@@ -1,4 +1,4 @@
-"""Persistence models for the notification centre and its preferences."""
+"""Persistence models for the notification centre, its preferences and devices."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, text
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from truvix.shared.database import Base, TimestampMixin, UUIDPrimaryKeyMixin, pg_enum
@@ -95,3 +95,35 @@ class NotificationPreference(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"NotificationPreference(user_id={self.user_id!r})"
+
+
+DEVICE_TOKEN_MAX_LENGTH = 200
+
+
+class DeviceToken(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """One installation that should receive an account's notifications.
+
+    A device token is not a secret and not an identity: it names an
+    installation, iOS rotates it at will, and the same phone can hold tokens for
+    several accounts over time. Unique on the token so a device belongs to
+    exactly one account — signing in as somebody else moves it rather than
+    leaving the previous occupant subscribed to a stranger's notifications.
+    """
+
+    __tablename__ = "device_tokens"
+    __table_args__ = (
+        UniqueConstraint("token", name="uq_device_tokens_token"),
+        # Every push reads an account's devices.
+        Index("ix_device_tokens_user_id", "user_id"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token: Mapped[str] = mapped_column(String(DEVICE_TOKEN_MAX_LENGTH), nullable=False)
+    #: Refreshed on every registration, so a sweep of installations nobody has
+    #: opened in a year has something to sort by.
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    def __repr__(self) -> str:
+        return f"DeviceToken(user_id={self.user_id!r})"

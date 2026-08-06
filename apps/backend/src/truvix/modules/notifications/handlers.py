@@ -10,6 +10,7 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from truvix.modules.analysis.models import RiskLevel
+from truvix.modules.notifications.devices import DeviceRegistry
 from truvix.modules.notifications.models import NotificationCategory
 from truvix.modules.notifications.service import NotificationService
 from truvix.shared.events import (
@@ -19,6 +20,20 @@ from truvix.shared.events import (
     registry,
 )
 from truvix.shared.formatting import format_number
+from truvix.shared.push import LoggingPushSender, PushSender
+
+
+def _registry_for(session: AsyncSession) -> DeviceRegistry:
+    """Build the device registry for a handler.
+
+    Handlers receive only the session and the event, so the push sender travels
+    on the session the same way the event bus does. A session without one falls
+    back to logging rather than failing: that is a test or a script, and neither
+    should need an Apple account to record a notification.
+    """
+    sender: PushSender = session.info.get("push_sender") or LoggingPushSender()
+    return DeviceRegistry(session, sender)
+
 
 EVENT_PRICE_DROP = "price_drop"
 EVENT_ANALYSIS_COMPLETED = "analysis_completed"
@@ -28,7 +43,7 @@ EVENT_RISK_ALERT = "risk_alert"
 async def _on_price_dropped(session: AsyncSession, event: DomainEvent) -> None:
     """File a price drop under the opportunities tab."""
     assert isinstance(event, PriceDropped)
-    service = NotificationService(session)
+    service = NotificationService(session, _registry_for(session))
     preferences = await service.preferences_for(event.user_id)
     if not preferences.price_changes:
         return
@@ -50,7 +65,7 @@ async def _on_price_dropped(session: AsyncSession, event: DomainEvent) -> None:
 async def _on_analysis_completed(session: AsyncSession, event: DomainEvent) -> None:
     """File a finished report under AI suggestions, and risks when warranted."""
     assert isinstance(event, AnalysisCompleted)
-    service = NotificationService(session)
+    service = NotificationService(session, _registry_for(session))
     preferences = await service.preferences_for(event.user_id)
 
     if preferences.ai_suggestions:

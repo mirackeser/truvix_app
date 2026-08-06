@@ -11,6 +11,14 @@
 	so that a simulator build signs without a development team. A device build
 	replaces this with the team-prefixed group from its provisioning profile.
 	-->
+	<!--
+	Push notifications. "development" routes to Apple's sandbox, which is what a
+	debug build's tokens are issued for; the App Store rewrites this to
+	"production" when it re-signs the archive, so a release build does not need a
+	separate value here.
+	-->
+	<key>aps-environment</key>
+	<string>development</string>
 	<key>keychain-access-groups</key>
 	<array>
 		<string>app.truvix.ios</string>

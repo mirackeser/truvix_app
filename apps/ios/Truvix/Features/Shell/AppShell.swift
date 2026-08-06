@@ -46,6 +46,7 @@ struct AppShell: View {
     @State private var requestedVehicleID: UUID?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(PushRegistrar.self) private var push
 
     /// Reserved space under the content, matching the bar's two layouts.
     private var barHeight: CGFloat {
@@ -90,6 +91,30 @@ struct AppShell: View {
         .screenBackground()
         .sheet(isPresented: $isPresentingNewAnalysis) {
             NewAnalysisView(api: api)
+        }
+        .task {
+            // Asked here rather than at launch. iOS only ever prompts once, so
+            // a refusal is close to permanent, and a prompt shown before
+            // somebody knows what the app does is usually refused. By the time
+            // the shell is on screen they have signed in and can see what a
+            // price alert would be about.
+            await push.requestAuthorisationIfNeeded()
+            await push.clearBadge()
+        }
+        .onChange(of: push.pendingDestination) { _, destination in
+            guard let destination else { return }
+            push.pendingDestination = nil
+            open(destination)
+        }
+    }
+
+    /// Follow a tapped notification to whatever it was about.
+    private func open(_ destination: NotificationDestination) {
+        if let vehicleID = destination.vehicleID {
+            requestedVehicleID = vehicleID
+            tab = .garage
+        } else {
+            tab = .notifications
         }
     }
 }

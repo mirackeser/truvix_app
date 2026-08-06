@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from truvix.modules.notifications.devices import DeviceRegistry
 from truvix.modules.notifications.models import (
     Notification,
     NotificationCategory,
@@ -36,13 +37,17 @@ class NotificationCounts:
 class NotificationService:
     """Creates, lists and updates a user's notifications and preferences."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, devices: DeviceRegistry | None = None) -> None:
         """Initialise the service.
 
         Args:
             session: The session whose transaction this service participates in.
+            devices: Where to push a new notification. Optional because reading
+                and marking notifications needs no push, and a caller that only
+                does those should not have to supply one.
         """
         self._session = session
+        self._devices = devices
 
     async def preferences_for(self, user_id: uuid.UUID) -> NotificationPreference:
         """Return the user's preferences, creating defaults on first access.
@@ -104,6 +109,14 @@ class NotificationService:
         self._session.add(notification)
         await self._session.flush()
         _logger.info("notification_recorded", category=category.value, event_type=event_type)
+
+        if self._devices is not None:
+            # Best effort, and deliberately after the flush: the notification is
+            # readable in the app whether or not the push lands, and a failed
+            # push must not undo the thing it was announcing.
+            counts = await self.counts_for(user_id)
+            await self._devices.push(notification, unread=counts.unread)
+
         return notification
 
     async def list_for(

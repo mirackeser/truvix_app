@@ -2,7 +2,9 @@ import SwiftUI
 
 @main
 struct TruvixApp: App {
+    @UIApplicationDelegateAdaptor(PushAppDelegate.self) private var appDelegate
     @State private var session: SessionStore
+    @State private var push: PushRegistrar
     private let auth: any AuthServicing
     private let api: any TruvixAPI
 
@@ -12,12 +14,19 @@ struct TruvixApp: App {
         auth = authService
         api = LiveTruvixAPI(client: client)
         _session = State(wrappedValue: SessionStore(client: client, auth: authService))
+
+        let registrar = PushRegistrar(auth: authService)
+        _push = State(wrappedValue: registrar)
+        // The device token arrives through the application delegate, which iOS
+        // creates itself, so the registrar has to be reachable from there.
+        PushAppDelegate.registrar = registrar
     }
 
     var body: some Scene {
         WindowGroup {
             RootView(auth: auth, api: api)
                 .environment(session)
+                .environment(push)
                 .preferredColorScheme(.dark)
         }
     }
@@ -30,6 +39,7 @@ struct TruvixApp: App {
 /// whether somebody is signed in.
 struct RootView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(PushRegistrar.self) private var push
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     let auth: any AuthServicing
@@ -64,6 +74,9 @@ struct RootView: View {
         }
         .onChange(of: session.phase.user?.id) { _, userID in
             guard userID != nil else {
+                // Stop notifications before the session goes: the next person
+                // to use this handset must not receive somebody else's alerts.
+                Task { await push.unregister() }
                 // Signing out ends the listener: a transaction verified against
                 // whoever signs in next would attach the purchase to the wrong
                 // account.

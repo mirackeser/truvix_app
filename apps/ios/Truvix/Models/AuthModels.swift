@@ -60,6 +60,11 @@ struct AuthenticatedResponse: Codable, Sendable {
 
 // MARK: - Requests
 
+/// A device token being registered or discarded.
+struct DeviceTokenRequest: Encodable, Sendable {
+    let token: String
+}
+
 /// The address somebody typed into the "forgot password" form.
 struct RequestPasswordResetRequest: Encodable, Sendable {
     let email: String

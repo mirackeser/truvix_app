@@ -22,6 +22,12 @@ protocol AuthServicing: Sendable {
     /// Succeeds whether or not the address has an account: the backend will not
     /// say which, and neither should this.
     func requestPasswordReset(email: String) async throws(APIError)
+
+    /// Tell the backend this device should receive notifications.
+    func registerDevice(token: String) async throws(APIError)
+
+    /// Tell the backend to stop sending notifications to this device.
+    func unregisterDevice(token: String) async throws(APIError)
 }
 
 /// Talks to the backend's `/auth` endpoints.
@@ -73,6 +79,26 @@ struct AuthService: AuthServicing {
                 path: "auth/password/reset-request",
                 body: RequestPasswordResetRequest(email: email),
                 requiresAuthentication: false
+            )
+        )
+    }
+
+    func registerDevice(token: String) async throws(APIError) {
+        try await client.send(
+            APIRequest(
+                method: .put,
+                path: "notifications/devices",
+                body: DeviceTokenRequest(token: token)
+            )
+        )
+    }
+
+    func unregisterDevice(token: String) async throws(APIError) {
+        try await client.send(
+            APIRequest(
+                method: .delete,
+                path: "notifications/devices",
+                body: DeviceTokenRequest(token: token)
             )
         )
     }
