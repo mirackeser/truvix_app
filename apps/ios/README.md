@@ -63,6 +63,13 @@ transaction is redelivered on the next launch, which is what stops a purchase
 being lost if the app dies mid-flow; finishing it early would throw away a
 purchase somebody paid for.
 
+### Two pages Apple requires before submission
+
+Guideline 3.1.2 makes a paywall without them a rejection: the screen must link
+to Terms of Use and a Privacy Policy, and the links must resolve. They are
+`LegalDocument` in `Truvix/Features/Subscription/PaywallView.swift`, pointing at
+`truvix.app/terms` and `truvix.app/privacy`. Publish both before submitting.
+
 ### One manual step before purchases work locally
 
 Products come from the store, so the simulator needs a StoreKit configuration

@@ -31,6 +31,16 @@ private let benefits: [PremiumBenefit] = [
     )
 ]
 
+/// The documents Apple requires a paywall to link to.
+///
+/// Guideline 3.1.2 makes these mandatory alongside the price and the renewal
+/// terms: a subscription screen without them is rejected. They must resolve to
+/// real pages before submission.
+private enum LegalDocument {
+    static let terms = URL(string: "https://truvix.app/terms")!
+    static let privacy = URL(string: "https://truvix.app/privacy")!
+}
+
 /// The paywall: what premium costs and what it gives.
 struct PaywallView: View {
     @State private var model: SubscriptionModel
@@ -209,12 +219,21 @@ struct PaywallView: View {
     }
 
     private var footnote: some View {
-        Text(
-            """
-            Abonelik, iptal edilmediği sürece dönem sonunda otomatik yenilenir. \
-            Yönetim ve iptal işlemleri Apple Kimliği ayarlarından yapılır.
-            """
-        )
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Text(
+                """
+                Abonelik, iptal edilmediği sürece dönem sonunda otomatik yenilenir. \
+                Yönetim ve iptal işlemleri Apple Kimliği ayarlarından yapılır.
+                """
+            )
+
+            // Required on the paywall itself, not merely somewhere in the app.
+            HStack(spacing: Theme.Spacing.sm) {
+                Link("Kullanım Koşulları", destination: LegalDocument.terms)
+                Link("Gizlilik Politikası", destination: LegalDocument.privacy)
+            }
+            .foregroundStyle(Theme.Colours.brand)
+        }
         .font(Theme.Typography.caption)
         .foregroundStyle(Theme.Colours.textSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
