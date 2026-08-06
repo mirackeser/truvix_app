@@ -211,9 +211,15 @@ class EmailSettings(BaseSettings):
     )
     timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 15.0
     verification_ttl_hours: Annotated[int, Field(ge=1, le=168)] = 24
-    #: Where a verification link points. The app claims this host so the link
-    #: opens the app; a browser fallback lives at the same address.
-    verification_base_url: HttpUrl = Field(default=HttpUrl("https://truvix.app/verify-email"))
+    verification_base_url: HttpUrl = Field(
+        default=HttpUrl("https://truvix.app/verify-email"),
+        description=(
+            "Where a verification link points. This must be a web page that "
+            "reads the token from its query string and POSTs it to "
+            "/auth/email/verify — the app does not claim the domain, so the "
+            "link opens a browser rather than the app."
+        ),
+    )
 
     @property
     def configured(self) -> bool:
