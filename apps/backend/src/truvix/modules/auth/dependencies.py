@@ -11,6 +11,7 @@ from truvix.modules.auth.journal import SecurityJournal
 from truvix.modules.auth.repository import RefreshTokenRepository
 from truvix.modules.auth.service import AuthService, SessionContext
 from truvix.modules.auth.verification import EmailVerificationService
+from truvix.modules.users.deletion import AccountDeletionService
 from truvix.modules.users.models import User
 from truvix.modules.users.repository import UserRepository
 from truvix.shared.dependencies import (
@@ -90,6 +91,16 @@ def get_email_verification_service(
 EmailVerificationServiceDep = Annotated[
     EmailVerificationService, Depends(get_email_verification_service)
 ]
+
+
+def get_account_deletion_service(
+    session: SessionDep, container: ContainerDep, hasher: PasswordHasherDep
+) -> AccountDeletionService:
+    """Provide the account deletion service for the current request."""
+    return AccountDeletionService(session, container.file_storage, hasher)
+
+
+AccountDeletionServiceDep = Annotated[AccountDeletionService, Depends(get_account_deletion_service)]
 
 
 def get_session_context(request: Request) -> SessionContext:

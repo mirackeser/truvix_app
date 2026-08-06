@@ -95,6 +95,26 @@ final class SessionStore {
         }
     }
 
+    /// Permanently delete the signed-in account.
+    ///
+    /// On success the session ends here rather than waiting for the next
+    /// request to fail: the tokens now name an account that does not exist.
+    ///
+    /// - Parameter password: Confirmation that the account holder means it.
+    /// - Returns: An explanation if it failed, `nil` if the account is gone.
+    func deleteAccount(password: String) async -> String? {
+        do {
+            try await auth.deleteAccount(password: password)
+        } catch {
+            logger.error("Hesap silinemedi: \(error.localizedDescription, privacy: .public)")
+            return error.localizedDescription
+        }
+
+        await auth.signOut()
+        phase = .signedOut
+        return nil
+    }
+
     /// Re-read the signed-in account from the backend.
     ///
     /// Needed after anything the backend changes about the account without the

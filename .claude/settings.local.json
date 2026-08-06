@@ -114,7 +114,12 @@
       "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_email_verification.py -q)",
       "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest -q)",
       "Bash(.venv/bin/python scripts/export_openapi.py)",
-      "Bash(git -C .. diff --stat docs/ apps/backend/docs/)"
+      "Bash(git -C .. diff --stat docs/ apps/backend/docs/)",
+      "Bash(psql -qtA -d truvix -c \"select column_name||' : '||data_type from information_schema.columns where table_name='users' order by ordinal_position\")",
+      "Bash(psql -qtA -d truvix -c \"select column_name||' : '||data_type from information_schema.columns where table_name='refresh_tokens' order by ordinal_position\")",
+      "Bash(psql -qtA -d truvix -c \"select tablename from pg_tables where schemaname='public' order by 1\")",
+      "Bash(psql -qtA -d truvix -c ' *)",
+      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_account_deletion.py -q)"
     ]
   }
 }

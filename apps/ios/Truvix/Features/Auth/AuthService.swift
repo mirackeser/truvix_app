@@ -11,6 +11,11 @@ protocol AuthServicing: Sendable {
 
     /// Ask the backend to mail a fresh verification link.
     func sendVerificationEmail() async throws(APIError)
+
+    /// Permanently delete the signed-in account.
+    ///
+    /// - Parameter password: Confirmation that the account holder means it.
+    func deleteAccount(password: String) async throws(APIError)
 }
 
 /// Talks to the backend's `/auth` endpoints.
@@ -53,6 +58,16 @@ struct AuthService: AuthServicing {
 
     func sendVerificationEmail() async throws(APIError) {
         try await client.send(APIRequest(method: .post, path: "auth/email/verification"))
+    }
+
+    func deleteAccount(password: String) async throws(APIError) {
+        try await client.send(
+            APIRequest(
+                method: .delete,
+                path: "auth/me",
+                body: DeleteAccountRequest(password: password)
+            )
+        )
     }
 
     /// End the session, locally regardless of what the server says.

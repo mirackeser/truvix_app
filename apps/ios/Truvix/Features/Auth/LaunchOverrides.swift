@@ -50,6 +50,11 @@ enum LaunchOverrides {
     static var opensPaywall: Bool {
         UserDefaults.standard.bool(forKey: "truvixOpenPaywall")
     }
+
+    /// Whether to open straight into the account deletion sheet.
+    static var opensDeleteAccount: Bool {
+        UserDefaults.standard.bool(forKey: "truvixOpenDeleteAccount")
+    }
     #else
     static var automaticSignIn: (email: String, password: String)? { nil }
     static var skipsOnboarding: Bool { false }
@@ -57,5 +62,6 @@ enum LaunchOverrides {
     static var opensNewAnalysis: Bool { false }
     static var initialVehicleID: UUID? { nil }
     static var opensPaywall: Bool { false }
+    static var opensDeleteAccount: Bool { false }
     #endif
 }

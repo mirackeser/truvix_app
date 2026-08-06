@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, status
 
 from truvix.modules.auth.dependencies import (
+    AccountDeletionServiceDep,
     AuthServiceDep,
     CurrentUserDep,
     EmailVerificationServiceDep,
@@ -14,6 +15,7 @@ from truvix.modules.auth.dependencies import (
 )
 from truvix.modules.auth.schemas import (
     AuthenticatedResponse,
+    DeleteAccountRequest,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
@@ -252,3 +254,40 @@ async def verify_email(
     """
     user = await verification.verify(payload.token)
     return UserResponse.from_user(user)
+
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(enforce_auth_rate_limit)],
+    summary="Delete this account",
+    description=(
+        "Permanently deletes the signed-in account, everything in its garage "
+        "and every photograph it uploaded. It cannot be undone, and it does not "
+        "cancel an App Store subscription — only the customer can do that from "
+        "their Apple ID settings."
+    ),
+    responses={
+        status.HTTP_204_NO_CONTENT: {"description": "The account is gone."},
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Access token missing, or the password did not match.",
+            **_PROBLEM_RESPONSE,
+        },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Too many attempts.",
+            **_PROBLEM_RESPONSE,
+        },
+    },
+)
+async def delete_account(
+    payload: DeleteAccountRequest,
+    current_user: CurrentUserDep,
+    deletion: AccountDeletionServiceDep,
+) -> None:
+    """Delete the signed-in account and everything belonging to it.
+
+    Required by App Store Review Guideline 5.1.1(v): an app that lets somebody
+    create an account has to let them delete it from inside the app, not by
+    emailing support.
+    """
+    await deletion.delete(user_id=current_user.id, password=payload.password)

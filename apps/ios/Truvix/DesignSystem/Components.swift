@@ -28,6 +28,27 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
+/// The button for an action that destroys something.
+///
+/// Filled rather than outlined: this is not a quieter primary button, it is a
+/// different kind of thing, and it should not be possible to mistake one for
+/// the other at a glance.
+struct DestructiveButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(Theme.Typography.headline)
+            .foregroundStyle(Theme.Colours.textPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(Theme.Colours.danger.opacity(isEnabled ? 1 : 0.4))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(Theme.Motion.quick, value: configuration.isPressed)
+    }
+}
+
 /// The outlined button used for secondary actions beside a primary one.
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {

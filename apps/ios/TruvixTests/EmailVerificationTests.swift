@@ -27,6 +27,14 @@ private final class StubAuth: AuthServicing, @unchecked Sendable {
         sendCount += 1
         if let sendError { throw sendError }
     }
+
+    var deleteError: APIError?
+    private(set) var deletedWithPassword: [String] = []
+
+    func deleteAccount(password: String) async throws(APIError) {
+        deletedWithPassword.append(password)
+        if let deleteError { throw deleteError }
+    }
 }
 
 @Suite("Email verification")
@@ -98,5 +106,75 @@ struct EmailVerificationTests {
         await subject.refreshProfile()
 
         #expect(subject.phase.user == nil)
+    }
+}
+
+
+@Suite("Account deletion")
+@MainActor
+struct AccountDeletionTests {
+
+    private func store(_ auth: StubAuth) -> SessionStore {
+        let client = APIClient(
+            configuration: APIConfiguration(baseURL: URL(string: "http://localhost")!),
+            tokens: InMemoryTokenStore()
+        )
+        let session = SessionStore(client: client, auth: auth)
+        session.signedIn(as: auth.user)
+        return session
+    }
+
+    @Test("Deleting sends the password the person typed")
+    func passwordIsSent() async {
+        let auth = StubAuth()
+        let subject = store(auth)
+
+        let failure = await subject.deleteAccount(password: "hunter2")
+
+        #expect(failure == nil)
+        #expect(auth.deletedWithPassword == ["hunter2"])
+    }
+
+    @Test("A deleted account ends the session immediately")
+    func sessionEndsOnSuccess() async {
+        // The tokens now name an account that does not exist; waiting for the
+        // next request to fail would leave the app showing a dead session.
+        let auth = StubAuth()
+        let subject = store(auth)
+
+        _ = await subject.deleteAccount(password: "hunter2")
+
+        #expect(subject.phase == .signedOut)
+    }
+
+    @Test("A refused deletion keeps the person signed in")
+    func sessionSurvivesFailure() async {
+        let auth = StubAuth()
+        auth.deleteError = .unauthorised
+        let subject = store(auth)
+
+        let failure = await subject.deleteAccount(password: "wrong")
+
+        #expect(failure != nil)
+        #expect(subject.phase.user != nil)
+    }
+
+    @Test("A wrong password surfaces the backend's own words")
+    func wrongPasswordIsExplained() async {
+        let auth = StubAuth()
+        auth.deleteError = .server(
+            ProblemDetail(
+                title: "Unauthorized",
+                status: 401,
+                detail: "Şifre doğrulanamadı. Hesap silinmedi.",
+                code: "authentication_failed",
+                requestID: nil
+            )
+        )
+        let subject = store(auth)
+
+        let failure = await subject.deleteAccount(password: "wrong")
+
+        #expect(failure == "Şifre doğrulanamadı. Hesap silinmedi.")
     }
 }

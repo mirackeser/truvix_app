@@ -80,6 +80,12 @@ class RefreshRequest(StrictRequest):
     refresh_token: Annotated[str, Field(min_length=1)]
 
 
+class DeleteAccountRequest(StrictRequest):
+    """Confirmation that the account holder means it."""
+
+    password: Annotated[str, Field(min_length=1, max_length=512)]
+
+
 class VerifyEmailRequest(StrictRequest):
     """The token carried by a verification link."""
 

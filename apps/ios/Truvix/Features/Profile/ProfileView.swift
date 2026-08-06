@@ -11,6 +11,7 @@ struct ProfileView: View {
     @State private var isShowingPaywall = false
     @State private var verificationMessage: String?
     @State private var isSendingVerification = false
+    @State private var isShowingDeleteAccount = false
 
     var body: some View {
         NavigationStack {
@@ -23,6 +24,7 @@ struct ProfileView: View {
                     }
                     settingsCard
                     signOutButton
+                    deleteAccountButton
                     versionFooter
                 }
                 .padding(.horizontal, Theme.Spacing.md)
@@ -39,9 +41,15 @@ struct ProfileView: View {
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView(api: api)
         }
+        .sheet(isPresented: $isShowingDeleteAccount) {
+            DeleteAccountSheet(isPremium: session.phase.user?.isPremium ?? false)
+        }
         .task {
             if LaunchOverrides.opensPaywall {
                 isShowingPaywall = true
+            }
+            if LaunchOverrides.opensDeleteAccount {
+                isShowingDeleteAccount = true
             }
         }
         .onChange(of: isShowingPaywall) { _, isShowing in
@@ -232,6 +240,19 @@ struct ProfileView: View {
             isConfirmingSignOut = true
         }
         .buttonStyle(SecondaryButtonStyle())
+    }
+
+    /// Required by App Store Review Guideline 5.1.1(v).
+    ///
+    /// It lives in the profile beside signing out, where somebody looking for it
+    /// would look, rather than being hidden a level deeper to discourage use.
+    private var deleteAccountButton: some View {
+        Button("Hesabımı Sil") {
+            isShowingDeleteAccount = true
+        }
+        .font(Theme.Typography.callout)
+        .foregroundStyle(Theme.Colours.danger)
+        .padding(.top, Theme.Spacing.xs)
     }
 
     private var versionFooter: some View {

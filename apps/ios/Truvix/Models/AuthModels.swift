@@ -60,6 +60,11 @@ struct AuthenticatedResponse: Codable, Sendable {
 
 // MARK: - Requests
 
+/// Confirmation accompanying a request to delete an account.
+struct DeleteAccountRequest: Encodable, Sendable {
+    let password: String
+}
+
 struct RegistrationRequest: Encodable, Sendable {
     let email: String
     let password: String

@@ -291,8 +291,11 @@ struct SubscriptionModelTests {
         #expect(await eventually { store.isListening })
         store.emit(SignedPurchase(signedTransaction: "renewal", transactionID: 7))
 
-        #expect(await eventually { await api.redeemedPayloads == ["renewal"] })
-        #expect(store.finishedTransactionIDs == [7])
+        // Waits on finishing rather than on redeeming: finishing happens after
+        // the backend replies, so the earlier condition can be true while this
+        // one is not yet.
+        #expect(await eventually { store.finishedTransactionIDs == [7] })
+        #expect(api.redeemedPayloads == ["renewal"])
     }
 
     @Test("A background renewal that fails does not interrupt with an alert")

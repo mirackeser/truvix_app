@@ -100,6 +100,23 @@ message instead of sending it — development sees the link in the log and needs
 no mail server. A mail server that is down does not fail a registration: the
 account exists, and another link can be asked for.
 
+## Account deletion
+
+`DELETE /api/v1/auth/me` erases the account, everything in its garage and every
+photograph it uploaded. App Store Review Guideline 5.1.1(v) requires an app that
+creates accounts to delete them from inside the app, and there is no soft-delete
+flag here — a row that still holds somebody's data has not been deleted.
+
+The password is required even though the caller holds a valid token: a token can
+come from an unlocked phone, and this is the one action that cannot be undone.
+
+Files are removed before the rows that name them, because the keys are only
+readable while those rows exist. Everything else follows from `ON DELETE
+CASCADE`.
+
+It cannot cancel an App Store subscription — Apple owns that relationship — so
+the app says so before asking for confirmation.
+
 ## Subscriptions
 
 Premium is sold through In-App Purchase, because Apple's review guideline 3.1.1

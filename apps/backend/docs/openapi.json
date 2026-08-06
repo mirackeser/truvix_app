@@ -535,6 +535,23 @@
         "title": "DashboardUser",
         "type": "object"
       },
+      "DeleteAccountRequest": {
+        "additionalProperties": false,
+        "description": "Confirmation that the account holder means it.",
+        "properties": {
+          "password": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "DeleteAccountRequest",
+        "type": "object"
+      },
       "DependencyStatus": {
         "description": "Reachability of a single downstream dependency.",
         "properties": {
@@ -3142,6 +3159,56 @@
       }
     },
     "/api/v1/auth/me": {
+      "delete": {
+        "description": "Permanently deletes the signed-in account, everything in its garage and every photograph it uploaded. It cannot be undone, and it does not cancel an App Store subscription — only the customer can do that from their Apple ID settings.",
+        "operationId": "delete_account_api_v1_auth_me_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The account is gone."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Access token missing, or the password did not match."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Too many attempts."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Delete this account",
+        "tags": [
+          "auth"
+        ]
+      },
       "get": {
         "description": "Returns the account behind the supplied access token.",
         "operationId": "read_current_user_api_v1_auth_me_get",
