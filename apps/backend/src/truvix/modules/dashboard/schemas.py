@@ -13,6 +13,7 @@ from truvix.modules.vehicles.schemas import (
     VehicleResponse,
     VehicleSummaryResponse,
 )
+from truvix.shared.quota import QuotaStatus
 
 
 class DashboardUser(BaseModel):
@@ -32,6 +33,30 @@ class DashboardUser(BaseModel):
         )
 
 
+class AnalysisAllowanceResponse(BaseModel):
+    """What is left of today's analysis allowance.
+
+    Shown so the ceiling is visible before it is reached. Without it the
+    allowance is invisible until an analysis is refused, which reads as a fault
+    rather than as a limit somebody could have planned around.
+    """
+
+    used: int
+    allowance: int
+    remaining: int
+    is_exhausted: bool
+
+    @classmethod
+    def from_status(cls, status: QuotaStatus) -> Self:
+        """Build the response from a counted allowance."""
+        return cls(
+            used=status.used,
+            allowance=status.allowance,
+            remaining=status.remaining,
+            is_exhausted=status.is_exhausted,
+        )
+
+
 class DashboardResponse(BaseModel):
     """Everything the home screen renders, in one payload.
 
@@ -42,6 +67,7 @@ class DashboardResponse(BaseModel):
     """
 
     user: DashboardUser
+    analyses_today: AnalysisAllowanceResponse
     garage: GarageStatsResponse
     unread_notifications: int
     recent_analyses: list[AnalysisSummaryResponse]

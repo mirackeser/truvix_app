@@ -6,16 +6,19 @@ struct DashboardView: View {
     private let api: any TruvixAPI
     private let onStartAnalysis: () -> Void
     private let onOpenNotifications: () -> Void
+    private let onOpenProfile: () -> Void
 
     init(
         api: any TruvixAPI,
         onStartAnalysis: @escaping () -> Void,
-        onOpenNotifications: @escaping () -> Void
+        onOpenNotifications: @escaping () -> Void,
+        onOpenProfile: @escaping () -> Void
     ) {
         _model = State(wrappedValue: DashboardModel(api: api))
         self.api = api
         self.onStartAnalysis = onStartAnalysis
         self.onOpenNotifications = onOpenNotifications
+        self.onOpenProfile = onOpenProfile
     }
 
     var body: some View {
@@ -42,6 +45,11 @@ struct DashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
                 greeting(dashboard)
+
+                if dashboard.analysesToday.isWorthShowing {
+                    allowanceNotice(dashboard.analysesToday, isPremium: dashboard.user.isPremium)
+                }
+
                 heroCard
 
                 if dashboard.isEmpty {
@@ -71,6 +79,54 @@ struct DashboardView: View {
     }
 
     // MARK: - Sections
+
+    /// Says how much of today's allowance is left, once that matters.
+    ///
+    /// Without it the ceiling is invisible until an analysis is refused, which
+    /// reads as a fault rather than as a limit somebody could have planned
+    /// around — and the refusal arrives after the photographs are uploaded.
+    private func allowanceNotice(
+        _ allowance: AnalysisAllowance,
+        isPremium: Bool
+    ) -> some View {
+        let exhausted = allowance.isExhausted
+        return Card {
+            AdaptiveStack(horizontalSpacing: Theme.Spacing.sm) {
+                Image(systemName: exhausted ? "hourglass" : "gauge.medium")
+                    .font(Theme.Typography.headline)
+                    .foregroundStyle(exhausted ? Theme.Colours.warning : Theme.Colours.brand)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                    Text(
+                        exhausted
+                            ? "Bugünlük analiz hakkın doldu"
+                            : "Bugün \(allowance.remaining) analiz hakkın kaldı"
+                    )
+                    .font(Theme.Typography.headline)
+                    .foregroundStyle(Theme.Colours.textPrimary)
+
+                    Text(
+                        exhausted
+                            ? "Hakkın yarın yenilenir."
+                            : "Günlük \(allowance.allowance) analiz hakkının "
+                                + "\(allowance.used) tanesini kullandın."
+                    )
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colours.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !isPremium {
+                    Button("Premium'a geç", action: onOpenProfile)
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colours.brand)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
 
     private func greeting(_ dashboard: Dashboard) -> some View {
         HStack(alignment: .top) {

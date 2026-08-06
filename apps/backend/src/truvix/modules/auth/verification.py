@@ -74,6 +74,11 @@ class EmailVerificationService:
         if user.is_email_verified:
             raise ConflictError("Bu e-posta adresi zaten doğrulanmış.")
 
+        # Issuing a link is a fine moment to sweep: there is no scheduler in
+        # this deployment, the expiry index makes the sweep cheap, and a table
+        # of tokens nobody can use should not grow without bound.
+        await self.purge_expired()
+
         await self._session.execute(
             delete(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
         )

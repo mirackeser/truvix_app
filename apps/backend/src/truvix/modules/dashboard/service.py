@@ -12,12 +12,17 @@ from typing import Final
 
 from truvix.modules.analysis.repository import AnalysisRepository
 from truvix.modules.analysis.schemas import AnalysisSummaryResponse
-from truvix.modules.dashboard.schemas import DashboardResponse, DashboardUser
+from truvix.modules.dashboard.schemas import (
+    AnalysisAllowanceResponse,
+    DashboardResponse,
+    DashboardUser,
+)
 from truvix.modules.notifications.service import NotificationService
 from truvix.modules.users.models import User
 from truvix.modules.vehicles.schemas import GarageFilter, VehicleSort
 from truvix.modules.vehicles.service import VehicleService
 from truvix.shared.pagination import PageParams
+from truvix.shared.quota import QuotaService
 
 # Section sizes, matching how many cards the home screen shows before its
 # "Tümünü Gör" link takes over.
@@ -36,6 +41,7 @@ class DashboardService:
         vehicles: VehicleService,
         analyses: AnalysisRepository,
         notifications: NotificationService,
+        quota: QuotaService,
     ) -> None:
         """Initialise the service.
 
@@ -43,10 +49,12 @@ class DashboardService:
             vehicles: The garage service, reused for filters and price trends.
             analyses: Access to analysis records.
             notifications: The notification service, for the unread badge.
+            quota: Counts what today's allowance has left.
         """
         self._vehicles = vehicles
         self._analyses = analyses
         self._notifications = notifications
+        self._quota = quota
 
     async def build(self, user: User) -> DashboardResponse:
         """Assemble the home screen for one account.
@@ -54,6 +62,8 @@ class DashboardService:
         Args:
             user: The authenticated account.
         """
+        allowance = await self._quota.analyses_today(user.id, user.subscription_tier)
+
         garage = await self._vehicles.garage_stats(owner_id=user.id)
 
         price_drops = await self._vehicles.list_garage(
@@ -80,6 +90,7 @@ class DashboardService:
 
         return DashboardResponse(
             user=DashboardUser.from_user(user),
+            analyses_today=AnalysisAllowanceResponse.from_status(allowance),
             garage=garage,
             unread_notifications=counts.unread,
             recent_analyses=[

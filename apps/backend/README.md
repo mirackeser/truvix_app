@@ -105,6 +105,14 @@ message instead of sending it — development sees the link in the log and needs
 no mail server. A mail server that is down does not fail a registration: the
 account exists, and another link can be asked for.
 
+## Quotas
+
+`GET /api/v1/dashboard` reports what today's analysis allowance has left, and
+the home screen shows it once half of it is gone. Without that the ceiling is
+invisible until an analysis is refused — after the photographs have been
+uploaded — which reads as a fault rather than as a limit somebody could have
+planned around.
+
 ## Password reset
 
 `POST /api/v1/auth/password/reset-request` mails a link;

@@ -17,8 +17,25 @@ struct DashboardUser: Codable, Equatable, Sendable {
 /// Fetched as a single call so the sections agree with each other: split
 /// across five requests, a vehicle could appear under "saved" and be missing
 /// from "price drops" in the same view.
+/// What is left of today's analysis allowance.
+struct AnalysisAllowance: Codable, Equatable, Sendable {
+    let used: Int
+    let allowance: Int
+    let remaining: Int
+    let isExhausted: Bool
+
+    /// Whether the number is worth putting in front of somebody.
+    ///
+    /// A full allowance is not news. It becomes worth saying once enough of it
+    /// is gone that the ceiling could be reached today.
+    var isWorthShowing: Bool {
+        isExhausted || remaining <= allowance / 2
+    }
+}
+
 struct Dashboard: Codable, Equatable, Sendable {
     let user: DashboardUser
+    let analysesToday: AnalysisAllowance
     let garage: GarageStats
     let unreadNotifications: Int
     let recentAnalyses: [AnalysisSummary]

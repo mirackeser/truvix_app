@@ -1,6 +1,35 @@
 {
   "components": {
     "schemas": {
+      "AnalysisAllowanceResponse": {
+        "description": "What is left of today's analysis allowance.\n\nShown so the ceiling is visible before it is reached. Without it the\nallowance is invisible until an analysis is refused, which reads as a fault\nrather than as a limit somebody could have planned around.",
+        "properties": {
+          "allowance": {
+            "title": "Allowance",
+            "type": "integer"
+          },
+          "is_exhausted": {
+            "title": "Is Exhausted",
+            "type": "boolean"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "used": {
+            "title": "Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "used",
+          "allowance",
+          "remaining",
+          "is_exhausted"
+        ],
+        "title": "AnalysisAllowanceResponse",
+        "type": "object"
+      },
       "AnalysisPhotoResponse": {
         "description": "One photo or document attached to an analysis.",
         "properties": {
@@ -461,6 +490,9 @@
       "DashboardResponse": {
         "description": "Everything the home screen renders, in one payload.\n\nThe screen shows five sections at once. Serving them from one endpoint\nkeeps the first paint to a single round trip and, more importantly, makes\nthe sections mutually consistent: split across five calls, a vehicle could\nappear in \"saved\" and vanish from \"price drops\" between requests.",
         "properties": {
+          "analyses_today": {
+            "$ref": "#/components/schemas/AnalysisAllowanceResponse"
+          },
           "garage": {
             "$ref": "#/components/schemas/GarageStatsResponse"
           },
@@ -502,6 +534,7 @@
         },
         "required": [
           "user",
+          "analyses_today",
           "garage",
           "unread_notifications",
           "recent_analyses",

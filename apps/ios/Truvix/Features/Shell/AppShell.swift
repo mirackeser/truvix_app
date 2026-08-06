@@ -60,7 +60,8 @@ struct AppShell: View {
                     DashboardView(
                         api: api,
                         onStartAnalysis: { isPresentingNewAnalysis = true },
-                        onOpenNotifications: { tab = .notifications }
+                        onOpenNotifications: { tab = .notifications },
+                        onOpenProfile: { tab = .profile }
                     )
                 case .garage:
                     GarageView(

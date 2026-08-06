@@ -387,3 +387,45 @@ class TestTokenStorage:
             select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(token))
         )
         assert remaining is None
+
+
+class TestExpiredTokensDoNotAccumulate:
+    """Tokens nobody can use should not sit in the table forever."""
+
+    async def test_issuing_a_link_sweeps_expired_ones(
+        self,
+        client: AsyncClient,
+        sender: RecordingSender,
+        container: ApplicationContainer,
+        session: Any,
+    ) -> None:
+        """There is no scheduler, so issuing a link is when the sweep happens."""
+        await _register(client, "sweeper@truvix.app")
+        await client.post(REQUEST_URL, json={"email": "sweeper@truvix.app"})
+        stale = sender.last_token
+        await _expire(container, stale)
+
+        # A different account asking for a link must clear the stale row too,
+        # not merely its own.
+        await _register(client, "other-account@truvix.app")
+        await client.post(REQUEST_URL, json={"email": "other-account@truvix.app"})
+
+        remaining = await session.scalar(
+            select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(stale))
+        )
+        assert remaining is None
+
+    async def test_the_sweep_spares_links_that_still_work(
+        self, client: AsyncClient, sender: RecordingSender, session: Any
+    ) -> None:
+        await _register(client, "keeper@truvix.app")
+        await client.post(REQUEST_URL, json={"email": "keeper@truvix.app"})
+        live = sender.last_token
+
+        await _register(client, "unrelated@truvix.app")
+        await client.post(REQUEST_URL, json={"email": "unrelated@truvix.app"})
+
+        survivor = await session.scalar(
+            select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(live))
+        )
+        assert survivor is not None

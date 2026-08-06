@@ -7,6 +7,8 @@ from typing import Any
 import pytest
 from httpx import AsyncClient
 
+from truvix.shared.container import ApplicationContainer
+
 pytestmark = pytest.mark.integration
 
 REGISTER_URL = "/api/v1/auth/register"
@@ -164,3 +166,47 @@ class TestIsolation:
         assert body["user"]["full_name"] == "Baska Kisi"
         assert body["garage"]["total"] == 0
         assert body["saved_vehicles"] == []
+
+
+class TestAnalysisAllowance:
+    """The ceiling has to be visible before somebody hits it."""
+
+    async def test_a_new_account_sees_its_full_allowance(
+        self, client: AsyncClient, container: ApplicationContainer
+    ) -> None:
+        headers = await _sign_up(client, "allowance-fresh@truvix.app")
+
+        response = await client.get(DASHBOARD_URL, headers=headers)
+
+        allowance = response.json()["analyses_today"]
+        assert allowance["used"] == 0
+        assert allowance["allowance"] == container.settings.quota.free_analyses_per_day
+        assert allowance["remaining"] == allowance["allowance"]
+        assert allowance["is_exhausted"] is False
+
+    async def test_running_an_analysis_is_counted(self, client: AsyncClient) -> None:
+        """Otherwise the number on screen would be decoration."""
+        headers = await _sign_up(client, "allowance-spent@truvix.app")
+        before = (await client.get(DASHBOARD_URL, headers=headers)).json()["analyses_today"]
+
+        vehicle = await client.post(
+            VEHICLES_URL,
+            json={
+                "make": "BMW",
+                "model": "320i",
+                "model_year": 2021,
+                "mileage_km": 67000,
+                "fuel_type": "petrol",
+                "transmission": "automatic",
+                "asking_price": "1250000.00",
+            },
+            headers=headers,
+        )
+        analysis = await client.post(
+            ANALYSES_URL, data={"vehicle_id": vehicle.json()["id"]}, headers=headers
+        )
+        await client.post(f"{ANALYSES_URL}/{analysis.json()['id']}/start", headers=headers)
+
+        after = (await client.get(DASHBOARD_URL, headers=headers)).json()["analyses_today"]
+        assert after["used"] == before["used"] + 1
+        assert after["remaining"] == before["remaining"] - 1

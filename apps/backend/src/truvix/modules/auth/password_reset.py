@@ -86,6 +86,11 @@ class PasswordResetService:
             _logger.info("password_reset_requested_for_unknown_address")
             return
 
+        # Issuing a link is a fine moment to sweep: there is no scheduler in
+        # this deployment, the expiry index makes the sweep cheap, and a table
+        # of tokens nobody can use should not grow without bound.
+        await self.purge_expired()
+
         await self._session.execute(
             delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
         )

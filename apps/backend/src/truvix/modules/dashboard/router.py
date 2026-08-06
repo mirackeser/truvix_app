@@ -12,7 +12,7 @@ from truvix.modules.dashboard.schemas import DashboardResponse
 from truvix.modules.dashboard.service import DashboardService
 from truvix.modules.notifications.service import NotificationService
 from truvix.modules.vehicles.dependencies import VehicleServiceDep
-from truvix.shared.dependencies import SessionDep
+from truvix.shared.dependencies import ContainerDep, SessionDep
 from truvix.shared.errors import PROBLEM_CONTENT_TYPE
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -24,12 +24,14 @@ def get_dashboard_service(
     vehicles: VehicleServiceDep,
     analyses: AnalysisRepositoryDep,
     session: SessionDep,
+    container: ContainerDep,
 ) -> DashboardService:
     """Provide the home screen aggregator for the current request."""
     return DashboardService(
         vehicles=vehicles,
         analyses=analyses,
         notifications=NotificationService(session),
+        quota=container.quota,
     )
 
 
