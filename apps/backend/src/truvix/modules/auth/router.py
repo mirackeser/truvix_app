@@ -11,6 +11,7 @@ from truvix.modules.auth.dependencies import (
     AuthServiceDep,
     CurrentUserDep,
     EmailVerificationServiceDep,
+    PasswordResetServiceDep,
     SessionContextDep,
 )
 from truvix.modules.auth.schemas import (
@@ -20,6 +21,8 @@ from truvix.modules.auth.schemas import (
     LogoutRequest,
     RefreshRequest,
     RegistrationRequest,
+    RequestPasswordResetRequest,
+    ResetPasswordRequest,
     TokenPairResponse,
     UserResponse,
     VerifyEmailRequest,
@@ -291,3 +294,70 @@ async def delete_account(
     emailing support.
     """
     await deletion.delete(user_id=current_user.id, password=payload.password)
+
+
+@router.post(
+    "/password/reset-request",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(enforce_auth_rate_limit)],
+    summary="Request a password reset",
+    description=(
+        "Mails a reset link to the address, if an account exists for it. The "
+        "response is identical either way — whether somebody has an account is "
+        "not something this endpoint will confirm."
+    ),
+    responses={
+        status.HTTP_202_ACCEPTED: {
+            "description": "Accepted. This says nothing about whether the account exists."
+        },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Too many requests.",
+            **_PROBLEM_RESPONSE,
+        },
+    },
+)
+async def request_password_reset(
+    payload: RequestPasswordResetRequest,
+    service: PasswordResetServiceDep,
+) -> None:
+    """Send a reset link to an address that has an account.
+
+    Answers 202 regardless. An endpoint that distinguished the two cases would
+    be a way to test which addresses have signed up, and the answer is a list of
+    people who own a car and are thinking about selling it.
+    """
+    await service.request_reset(payload.email)
+
+
+@router.post(
+    "/password/reset",
+    response_model=UserResponse,
+    dependencies=[Depends(enforce_auth_rate_limit)],
+    summary="Set a new password",
+    description=(
+        "Consumes a reset link and replaces the password. Every existing "
+        "session is revoked, because a reset may be somebody removing a "
+        "stranger from their account."
+    ),
+    responses={
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "The link is unknown, spent or expired, or the password was rejected.",
+            **_PROBLEM_RESPONSE,
+        },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Too many attempts.",
+            **_PROBLEM_RESPONSE,
+        },
+    },
+)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    service: PasswordResetServiceDep,
+) -> UserResponse:
+    """Set a new password from a reset link.
+
+    Takes no access token: somebody who has forgotten their password cannot
+    sign in, which is the entire point.
+    """
+    user = await service.reset(token=payload.token, new_password=payload.password)
+    return UserResponse.from_user(user)

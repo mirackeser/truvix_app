@@ -60,6 +60,11 @@ struct AuthenticatedResponse: Codable, Sendable {
 
 // MARK: - Requests
 
+/// The address somebody typed into the "forgot password" form.
+struct RequestPasswordResetRequest: Encodable, Sendable {
+    let email: String
+}
+
 /// Confirmation accompanying a request to delete an account.
 struct DeleteAccountRequest: Encodable, Sendable {
     let password: String

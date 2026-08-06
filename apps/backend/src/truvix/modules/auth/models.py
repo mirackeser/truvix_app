@@ -117,3 +117,32 @@ class EmailVerificationToken(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     def __repr__(self) -> str:
         # Deliberately omits the digest: a repr ends up in logs and tracebacks.
         return f"EmailVerificationToken(user_id={self.user_id!r})"
+
+
+class PasswordResetToken(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """A one-time link that lets somebody choose a new password.
+
+    Deliberately a separate table from email verification rather than one table
+    with a purpose column. Two links that grant different things should not be
+    interchangeable because a value was read wrong: a verification token cannot
+    be presented as a reset token, because it is not in here.
+    """
+
+    __tablename__ = "password_reset_tokens"
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_password_reset_tokens_token_hash"),
+        # Issuing a new token deletes the account's old ones.
+        Index("ix_password_reset_tokens_user_id", "user_id"),
+        # The purge reads by expiry across all accounts.
+        Index("ix_password_reset_tokens_expires_at", "expires_at"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[str] = mapped_column(String(TOKEN_HASH_LENGTH), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    def __repr__(self) -> str:
+        # Deliberately omits the digest: a repr ends up in logs and tracebacks.
+        return f"PasswordResetToken(user_id={self.user_id!r})"

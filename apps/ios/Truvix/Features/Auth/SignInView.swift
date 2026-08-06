@@ -29,6 +29,7 @@ struct SignInView: View {
     @State private var password = ""
     @State private var isSubmitting = false
     @State private var errorMessage: String?
+    @State private var isShowingForgotPassword = false
 
     var body: some View {
         ScrollView {
@@ -41,6 +42,9 @@ struct SignInView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .screenBackground()
+        .sheet(isPresented: $isShowingForgotPassword) {
+            ForgotPasswordSheet(auth: auth, initialEmail: email)
+        }
     }
 
     // MARK: - Sections
@@ -106,6 +110,15 @@ struct SignInView: View {
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colours.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    // Sitting under the password field, where somebody who has
+                    // just failed to remember it is already looking.
+                    Button("Şifreni mi unuttun?") {
+                        isShowingForgotPassword = true
+                    }
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colours.brand)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
                 if let errorMessage {

@@ -35,6 +35,14 @@ private final class StubAuth: AuthServicing, @unchecked Sendable {
         deletedWithPassword.append(password)
         if let deleteError { throw deleteError }
     }
+
+    var resetError: APIError?
+    private(set) var resetRequestedFor: [String] = []
+
+    func requestPasswordReset(email: String) async throws(APIError) {
+        resetRequestedFor.append(email)
+        if let resetError { throw resetError }
+    }
 }
 
 @Suite("Email verification")
@@ -176,5 +184,46 @@ struct AccountDeletionTests {
         let failure = await subject.deleteAccount(password: "wrong")
 
         #expect(failure == "Şifre doğrulanamadı. Hesap silinmedi.")
+    }
+}
+
+
+@Suite("Forgot password")
+@MainActor
+struct ForgotPasswordTests {
+
+    @Test("The address is sent as typed, trimmed")
+    func addressIsSent() async throws {
+        let auth = StubAuth()
+
+        try await auth.requestPasswordReset(email: "somebody@truvix.app")
+
+        #expect(auth.resetRequestedFor == ["somebody@truvix.app"])
+    }
+
+    @Test("A throttled request surfaces the backend's own message")
+    func throttlingIsExplained() async {
+        // The only failures that can reach the screen are transport or
+        // throttling: the backend answers 202 whether or not the address is
+        // known, precisely so the screen cannot reveal which.
+        let auth = StubAuth()
+        auth.resetError = .server(
+            ProblemDetail(
+                title: "Rate Limit Exceeded",
+                status: 429,
+                detail: "Too many requests. Please wait before trying again.",
+                code: "rate_limit_exceeded",
+                requestID: nil
+            )
+        )
+
+        var message: String?
+        do {
+            try await auth.requestPasswordReset(email: "somebody@truvix.app")
+        } catch {
+            message = error.localizedDescription
+        }
+
+        #expect(message == "Too many requests. Please wait before trying again.")
     }
 }

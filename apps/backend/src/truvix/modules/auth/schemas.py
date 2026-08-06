@@ -86,6 +86,27 @@ class DeleteAccountRequest(StrictRequest):
     password: Annotated[str, Field(min_length=1, max_length=512)]
 
 
+class RequestPasswordResetRequest(StrictRequest):
+    """The address somebody typed into the "forgot password" form."""
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(StrictRequest):
+    """A reset link and the password to put behind it."""
+
+    token: Annotated[str, Field(min_length=16, max_length=256)]
+    password: PasswordStr
+
+    @field_validator("password")
+    @classmethod
+    def _reject_whitespace_only_password(cls, value: str) -> str:
+        """Reject passwords that carry no actual entropy."""
+        if not value.strip():
+            raise ValueError("Password must contain non-whitespace characters.")
+        return value
+
+
 class VerifyEmailRequest(StrictRequest):
     """The token carried by a verification link."""
 

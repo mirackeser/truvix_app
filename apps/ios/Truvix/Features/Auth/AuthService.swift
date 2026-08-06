@@ -16,6 +16,12 @@ protocol AuthServicing: Sendable {
     ///
     /// - Parameter password: Confirmation that the account holder means it.
     func deleteAccount(password: String) async throws(APIError)
+
+    /// Ask for a password reset link.
+    ///
+    /// Succeeds whether or not the address has an account: the backend will not
+    /// say which, and neither should this.
+    func requestPasswordReset(email: String) async throws(APIError)
 }
 
 /// Talks to the backend's `/auth` endpoints.
@@ -58,6 +64,17 @@ struct AuthService: AuthServicing {
 
     func sendVerificationEmail() async throws(APIError) {
         try await client.send(APIRequest(method: .post, path: "auth/email/verification"))
+    }
+
+    func requestPasswordReset(email: String) async throws(APIError) {
+        try await client.send(
+            APIRequest(
+                method: .post,
+                path: "auth/password/reset-request",
+                body: RequestPasswordResetRequest(email: email),
+                requiresAuthentication: false
+            )
+        )
     }
 
     func deleteAccount(password: String) async throws(APIError) {

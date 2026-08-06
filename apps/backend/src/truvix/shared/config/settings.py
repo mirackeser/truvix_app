@@ -211,6 +211,20 @@ class EmailSettings(BaseSettings):
     )
     timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 15.0
     verification_ttl_hours: Annotated[int, Field(ge=1, le=168)] = 24
+    password_reset_ttl_hours: Annotated[int, Field(ge=1, le=24)] = 2
+    """How long a reset link lasts.
+
+    Shorter than a verification link, and capped lower. A verification link that
+    sits unused in an inbox grants nothing; a reset link grants the account.
+    """
+    password_reset_base_url: HttpUrl = Field(
+        default=HttpUrl("https://truvix.app/reset-password.html"),
+        description=(
+            "Where a reset link points. A web page that reads the token from "
+            "its query string and posts it, with the new password, to "
+            "/auth/password/reset."
+        ),
+    )
     verification_base_url: HttpUrl = Field(
         default=HttpUrl("https://truvix.app/verify-email"),
         description=(

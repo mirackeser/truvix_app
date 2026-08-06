@@ -8,6 +8,7 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from truvix.modules.auth.journal import SecurityJournal
+from truvix.modules.auth.password_reset import PasswordResetService
 from truvix.modules.auth.repository import RefreshTokenRepository
 from truvix.modules.auth.service import AuthService, SessionContext
 from truvix.modules.auth.verification import EmailVerificationService
@@ -93,6 +94,25 @@ EmailVerificationServiceDep = Annotated[
 ]
 
 
+def get_password_reset_service(
+    session: SessionDep,
+    settings: SettingsDep,
+    hasher: PasswordHasherDep,
+    tokens: RefreshTokenRepositoryDep,
+) -> PasswordResetService:
+    """Provide the password reset service for the current request."""
+    return PasswordResetService(
+        session,
+        build_email_sender(settings.email),
+        settings.email,
+        hasher,
+        tokens,
+    )
+
+
+PasswordResetServiceDep = Annotated[PasswordResetService, Depends(get_password_reset_service)]
+
+
 def get_account_deletion_service(
     session: SessionDep, container: ContainerDep, hasher: PasswordHasherDep
 ) -> AccountDeletionService:
@@ -140,6 +160,15 @@ async def get_current_user(
         raise AuthenticationError("The provided token is invalid or has expired.")
     if not user.status.can_authenticate:
         raise AuthorizationError("This account is not permitted to access the API.")
+
+    # A password reset invalidates tokens issued before it, so an access token
+    # already in a stranger's hands stops working at once rather than lasting
+    # out its half hour. The `iat` claim has second precision, so a token minted
+    # in the same second as the reset survives; a one-second window is not worth
+    # the risk of rejecting the legitimate sign-in that follows.
+    if user.tokens_invalid_before is not None and claims.issued_at < user.tokens_invalid_before:
+        raise AuthenticationError("The provided token is invalid or has expired.")
+
     return user
 
 

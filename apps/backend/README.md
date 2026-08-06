@@ -105,6 +105,34 @@ message instead of sending it — development sees the link in the log and needs
 no mail server. A mail server that is down does not fail a registration: the
 account exists, and another link can be asked for.
 
+## Password reset
+
+`POST /api/v1/auth/password/reset-request` mails a link;
+`POST /api/v1/auth/password/reset` consumes it. Two rules shape the design:
+
+**Asking about an address tells you nothing.** Both a known and an unknown
+address get an identical `202` — same status, same empty body. An endpoint that
+distinguished them would be a way to test which addresses have signed up, and
+the answer would be a list of people who own a car and are thinking of selling
+it.
+
+**A reset ends every session.** Somebody may be resetting because a stranger is
+in their account. Revoking refresh tokens is not enough on its own: an access
+token is a signed JWT that nothing checks against the database, so a stranger
+would keep working for the rest of its half hour. `users.tokens_invalid_before`
+closes that — access tokens issued before the reset are refused outright.
+
+A reset also clears the lockout counter, since an account locked by failed
+guesses would otherwise still be locked after a successful reset, and marks the
+address verified, since reading the link proves what the verification link
+proves.
+
+Links are single use, expire after `TRUVIX_EMAIL_PASSWORD_RESET_TTL_HOURS`
+(two by default — shorter than a verification link, which grants nothing), and
+issuing one invalidates the last. Reset tokens live in their own table rather
+than sharing one with verification tokens, so a verification link can never be
+presented as a reset link.
+
 ## Account deletion
 
 `DELETE /api/v1/auth/me` erases the account, everything in its garage and every

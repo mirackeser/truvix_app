@@ -35,6 +35,13 @@ suite exhausts its own budget and reads the `429` as a test failure:
 TRUVIX_RATELIMIT_ENABLED=false uv run uvicorn truvix.main:app
 ```
 
+Give the backend a moment before the first run. The live suites are sensitive
+to a cold server: the run started seconds after `uvicorn` boots occasionally
+fails one assertion, always a different one, and never reproduces once the
+process is warm. No server error accompanies it — the backend has never
+returned a 5xx during these runs — so it is the suite outpacing a cold
+connection pool rather than a defect in the API.
+
 ## Debug launch overrides
 
 Compiled out of release builds. They exist so any screen can be reached without

@@ -111,6 +111,17 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin):
     phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    #: Access tokens issued before this instant are refused.
+    #:
+    #: Revoking refresh tokens does not stop an access token that is already in
+    #: somebody's hands: it is a signed JWT with its own lifetime and nothing
+    #: consults the database to accept it. That is fine for signing out, and not
+    #: fine for a password reset, where the point may be to remove a stranger
+    #: from the account and half an hour of continued access is the whole
+    #: problem. Setting this makes every token older than the reset invalid at
+    #: once.
+    tokens_invalid_before: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     failed_login_attempts: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )
