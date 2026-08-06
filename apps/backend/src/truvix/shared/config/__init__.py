@@ -3,6 +3,7 @@
 from truvix.shared.config.settings import (
     AISettings,
     DatabaseSettings,
+    EmailSettings,
     Environment,
     LogFormat,
     ObservabilitySettings,
@@ -20,6 +21,7 @@ from truvix.shared.config.settings import (
 __all__ = [
     "AISettings",
     "DatabaseSettings",
+    "EmailSettings",
     "Environment",
     "LogFormat",
     "ObservabilitySettings",

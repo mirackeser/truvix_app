@@ -556,6 +556,70 @@
         "title": "DependencyStatus",
         "type": "object"
       },
+      "EntitlementResponse": {
+        "description": "One subscription the account holds.",
+        "properties": {
+          "environment": {
+            "$ref": "#/components/schemas/StoreEnvironment"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          },
+          "purchased_at": {
+            "format": "date-time",
+            "title": "Purchased At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EntitlementStatus"
+          }
+        },
+        "required": [
+          "id",
+          "product_id",
+          "status",
+          "environment",
+          "purchased_at",
+          "expires_at",
+          "is_current"
+        ],
+        "title": "EntitlementResponse",
+        "type": "object"
+      },
+      "EntitlementStatus": {
+        "description": "Where a subscription stands.\n\nMirrors the states the App Store reports, because inventing our own would\nmean translating twice and losing a distinction each time.",
+        "enum": [
+          "active",
+          "expired",
+          "in_grace_period",
+          "in_billing_retry",
+          "revoked"
+        ],
+        "title": "EntitlementStatus",
+        "type": "string"
+      },
       "FindingCategory": {
         "description": "Aspect of the vehicle a finding concerns.",
         "enum": [
@@ -1469,6 +1533,23 @@
         "title": "ReadinessResponse",
         "type": "object"
       },
+      "RedeemRequest": {
+        "additionalProperties": false,
+        "description": "A signed transaction the app received from StoreKit.",
+        "properties": {
+          "signed_transaction": {
+            "maxLength": 32768,
+            "minLength": 1,
+            "title": "Signed Transaction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signed_transaction"
+        ],
+        "title": "RedeemRequest",
+        "type": "object"
+      },
       "RefreshRequest": {
         "additionalProperties": false,
         "description": "Payload for exchanging a refresh token for a new pair.",
@@ -1572,6 +1653,58 @@
         ],
         "title": "SellerType",
         "type": "string"
+      },
+      "StoreEnvironment": {
+        "description": "Which App Store issued the transaction.",
+        "enum": [
+          "sandbox",
+          "production"
+        ],
+        "title": "StoreEnvironment",
+        "type": "string"
+      },
+      "StoreNotificationRequest": {
+        "additionalProperties": false,
+        "description": "The envelope Apple posts to the server notification URL.",
+        "properties": {
+          "signedPayload": {
+            "maxLength": 32768,
+            "minLength": 1,
+            "title": "Signedpayload",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signedPayload"
+        ],
+        "title": "StoreNotificationRequest",
+        "type": "object"
+      },
+      "SubscriptionStateResponse": {
+        "description": "The account's plan and what it holds.",
+        "properties": {
+          "entitlements": {
+            "items": {
+              "$ref": "#/components/schemas/EntitlementResponse"
+            },
+            "title": "Entitlements",
+            "type": "array"
+          },
+          "is_premium": {
+            "title": "Is Premium",
+            "type": "boolean"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/SubscriptionTier"
+          }
+        },
+        "required": [
+          "tier",
+          "is_premium",
+          "entitlements"
+        ],
+        "title": "SubscriptionStateResponse",
+        "type": "object"
       },
       "SubscriptionTier": {
         "description": "Commercial plan the account is on.",
@@ -2367,6 +2500,23 @@
         },
         "title": "VehicleUpdateRequest",
         "type": "object"
+      },
+      "VerifyEmailRequest": {
+        "additionalProperties": false,
+        "description": "The token carried by a verification link.",
+        "properties": {
+          "token": {
+            "maxLength": 256,
+            "minLength": 16,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "VerifyEmailRequest",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -2780,6 +2930,93 @@
         "summary": "Run an analysis",
         "tags": [
           "analyses"
+        ]
+      }
+    },
+    "/api/v1/auth/email/verification": {
+      "post": {
+        "description": "Mails a fresh verification link to the signed-in account's address, replacing any link sent earlier.",
+        "operationId": "send_verification_email_api_v1_auth_email_verification_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "The link was sent."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Access token missing or invalid."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "The address is already verified."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Too many links requested."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Send a verification link",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/email/verify": {
+      "post": {
+        "description": "Consumes a verification link and marks the address verified.",
+        "operationId": "verify_email_api_v1_auth_email_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "The link is unknown, spent or expired."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Too many attempts."
+          }
+        },
+        "summary": "Verify an address",
+        "tags": [
+          "auth"
         ]
       }
     },
@@ -4010,6 +4247,137 @@
         "summary": "Mark one as read",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/subscriptions": {
+      "get": {
+        "description": "Returns the caller's plan and the entitlements behind it.",
+        "operationId": "read_state_api_v1_subscriptions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Access token missing or invalid."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Subscription state",
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/v1/subscriptions/notifications": {
+      "post": {
+        "description": "Receives subscription changes from the App Store: renewals, cancellations, refunds and expiries. Unauthenticated by design — Apple cannot hold a token — so the payload's signature is what authenticates the caller.",
+        "operationId": "receive_store_notification_api_v1_subscriptions_notifications_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoreNotificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Notification accepted."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "The notification did not verify."
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Subscriptions are not configured on this deployment."
+          }
+        },
+        "summary": "App Store server notification",
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/v1/subscriptions/redeem": {
+      "post": {
+        "description": "Verifies a signed StoreKit transaction and grants what it entitles. The transaction's signature chain must terminate at an Apple root and name this application.",
+        "operationId": "redeem_api_v1_subscriptions_redeem_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Access token missing or invalid."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "The subscription belongs to another account."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "The transaction did not verify."
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {}
+            },
+            "description": "Subscriptions are not configured on this deployment."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Redeem a purchase",
+        "tags": [
+          "subscriptions"
         ]
       }
     },

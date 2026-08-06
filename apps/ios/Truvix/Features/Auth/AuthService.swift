@@ -8,6 +8,9 @@ protocol AuthServicing: Sendable {
     func currentUser() async throws(APIError) -> UserProfile
     func signOut() async
     var hasStoredSession: Bool { get async }
+
+    /// Ask the backend to mail a fresh verification link.
+    func sendVerificationEmail() async throws(APIError)
 }
 
 /// Talks to the backend's `/auth` endpoints.
@@ -46,6 +49,10 @@ struct AuthService: AuthServicing {
 
     func currentUser() async throws(APIError) -> UserProfile {
         try await client.send(APIRequest(path: "auth/me"))
+    }
+
+    func sendVerificationEmail() async throws(APIError) {
+        try await client.send(APIRequest(method: .post, path: "auth/email/verification"))
     }
 
     /// End the session, locally regardless of what the server says.

@@ -9,6 +9,8 @@ struct ProfileView: View {
     @State private var stats: GarageStats = .empty
     @State private var isConfirmingSignOut = false
     @State private var isShowingPaywall = false
+    @State private var verificationMessage: String?
+    @State private var isSendingVerification = false
 
     var body: some View {
         NavigationStack {
@@ -86,9 +88,32 @@ struct ProfileView: View {
                     .foregroundStyle(Theme.Colours.textSecondary)
 
                 if !user.emailVerified {
-                    Label("E-posta doğrulanmadı", systemImage: "exclamationmark.circle")
-                        .font(Theme.Typography.caption)
-                        .foregroundStyle(Theme.Colours.warning)
+                    VStack(spacing: Theme.Spacing.xs) {
+                        Label("E-posta doğrulanmadı", systemImage: "exclamationmark.circle")
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colours.warning)
+
+                        if let verificationMessage {
+                            Text(verificationMessage)
+                                .font(Theme.Typography.caption)
+                                .foregroundStyle(Theme.Colours.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            // A warning somebody cannot act on is just nagging,
+                            // so it comes with the thing that resolves it.
+                            Button("Doğrulama bağlantısı gönder") {
+                                Task {
+                                    isSendingVerification = true
+                                    verificationMessage = await session.resendVerificationEmail()
+                                    isSendingVerification = false
+                                }
+                            }
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colours.brand)
+                            .disabled(isSendingVerification)
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity)

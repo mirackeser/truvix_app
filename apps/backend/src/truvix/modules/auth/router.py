@@ -6,7 +6,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, status
 
-from truvix.modules.auth.dependencies import AuthServiceDep, CurrentUserDep, SessionContextDep
+from truvix.modules.auth.dependencies import (
+    AuthServiceDep,
+    CurrentUserDep,
+    EmailVerificationServiceDep,
+    SessionContextDep,
+)
 from truvix.modules.auth.schemas import (
     AuthenticatedResponse,
     LoginRequest,
@@ -15,6 +20,7 @@ from truvix.modules.auth.schemas import (
     RegistrationRequest,
     TokenPairResponse,
     UserResponse,
+    VerifyEmailRequest,
 )
 from truvix.modules.auth.service import AuthenticatedSession
 from truvix.shared.errors import PROBLEM_CONTENT_TYPE
@@ -67,8 +73,9 @@ async def register(
     payload: RegistrationRequest,
     service: AuthServiceDep,
     context: SessionContextDep,
+    verification: EmailVerificationServiceDep,
 ) -> AuthenticatedResponse:
-    """Register a new account."""
+    """Register a new account and send its verification link."""
     session = await service.register(
         email=payload.email,
         password=payload.password,
@@ -76,6 +83,11 @@ async def register(
         phone_number=payload.phone_number,
         context=context,
     )
+
+    # Sending is best effort: the account exists either way, and a mail server
+    # that is down must not turn a successful registration into a failure. The
+    # person can ask for another link from their profile.
+    await verification.send_verification(session.user)
     return _to_response(session)
 
 
@@ -171,3 +183,72 @@ async def logout_everywhere(current_user: CurrentUserDep, service: AuthServiceDe
 async def read_current_user(current_user: CurrentUserDep) -> UserResponse:
     """Return the authenticated account."""
     return UserResponse.from_user(current_user)
+
+
+@router.post(
+    "/email/verification",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(enforce_auth_rate_limit)],
+    summary="Send a verification link",
+    description=(
+        "Mails a fresh verification link to the signed-in account's address, "
+        "replacing any link sent earlier."
+    ),
+    responses={
+        status.HTTP_202_ACCEPTED: {"description": "The link was sent."},
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Access token missing or invalid.",
+            **_PROBLEM_RESPONSE,
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": "The address is already verified.",
+            **_PROBLEM_RESPONSE,
+        },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Too many links requested.",
+            **_PROBLEM_RESPONSE,
+        },
+    },
+)
+async def send_verification_email(
+    current_user: CurrentUserDep,
+    verification: EmailVerificationServiceDep,
+) -> None:
+    """Send the signed-in account a fresh verification link.
+
+    Rate limited on the same budget as the other authentication endpoints: the
+    endpoint sends mail to an address somebody else chose, so without a ceiling
+    it is a way to have Truvix deliver unwanted mail on request.
+    """
+    await verification.send_verification(current_user)
+
+
+@router.post(
+    "/email/verify",
+    response_model=UserResponse,
+    dependencies=[Depends(enforce_auth_rate_limit)],
+    summary="Verify an address",
+    description="Consumes a verification link and marks the address verified.",
+    responses={
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "The link is unknown, spent or expired.",
+            **_PROBLEM_RESPONSE,
+        },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Too many attempts.",
+            **_PROBLEM_RESPONSE,
+        },
+    },
+)
+async def verify_email(
+    payload: VerifyEmailRequest,
+    verification: EmailVerificationServiceDep,
+) -> UserResponse:
+    """Consume a verification link.
+
+    Takes no access token. The link arrives by mail and may well be opened in a
+    browser on another device, where no session exists; the token itself is the
+    proof, and it is single use.
+    """
+    user = await verification.verify(payload.token)
+    return UserResponse.from_user(user)

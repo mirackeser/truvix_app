@@ -186,6 +186,41 @@ class SubscriptionSettings(BaseSettings):
         return self.bundle_id is not None
 
 
+class EmailSettings(BaseSettings):
+    """Outbound mail configuration.
+
+    SMTP rather than a vendor SDK: every provider speaks it, so switching from
+    one to another is a configuration change. With no host configured the
+    application logs messages instead of sending them, which keeps development
+    working without a mail server and makes the link visible in the log.
+    """
+
+    model_config = _group_config("TRUVIX_EMAIL_")
+
+    host: str | None = Field(default=None, description="SMTP host. Unset disables sending.")
+    port: Annotated[int, Field(ge=1, le=65535)] = 587
+    username: str | None = None
+    password: SecretStr | None = None
+    #: Implicit TLS, the whole session encrypted from the first byte (port 465).
+    use_tls: bool = False
+    #: Explicit TLS, upgrading a plain connection (port 587). The usual choice.
+    use_starttls: bool = True
+    from_address: str = Field(
+        default="Truvix <noreply@truvix.app>",
+        description="The From header on every message.",
+    )
+    timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 15.0
+    verification_ttl_hours: Annotated[int, Field(ge=1, le=168)] = 24
+    #: Where a verification link points. The app claims this host so the link
+    #: opens the app; a browser fallback lives at the same address.
+    verification_base_url: HttpUrl = Field(default=HttpUrl("https://truvix.app/verify-email"))
+
+    @property
+    def configured(self) -> bool:
+        """Whether mail can actually be delivered."""
+        return self.host is not None
+
+
 class QuotaSettings(BaseSettings):
     """Per-account ceilings on what one user may consume.
 
@@ -262,6 +297,7 @@ class Settings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    email: EmailSettings = Field(default_factory=EmailSettings)
     quota: QuotaSettings = Field(default_factory=QuotaSettings)
     subscription: SubscriptionSettings = Field(default_factory=SubscriptionSettings)
     ai: AISettings = Field(default_factory=AISettings)

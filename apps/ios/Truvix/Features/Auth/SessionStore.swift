@@ -80,6 +80,21 @@ final class SessionStore {
         phase = .signedIn(user)
     }
 
+    /// Ask the backend to mail a fresh verification link.
+    ///
+    /// Reports what happened rather than throwing: the caller is a button in a
+    /// profile card, and the only useful response to a failure there is a line
+    /// of text.
+    func resendVerificationEmail() async -> String {
+        do {
+            try await auth.sendVerificationEmail()
+            return "Doğrulama bağlantısı e-posta adresine gönderildi."
+        } catch {
+            logger.error("Doğrulama e-postası gönderilemedi: \(error.localizedDescription, privacy: .public)")
+            return error.localizedDescription
+        }
+    }
+
     /// Re-read the signed-in account from the backend.
     ///
     /// Needed after anything the backend changes about the account without the

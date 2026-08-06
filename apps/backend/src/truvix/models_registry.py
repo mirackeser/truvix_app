@@ -18,7 +18,7 @@ from truvix.modules.analysis.models import (
     RiskLevel,
     VehicleAnalysis,
 )
-from truvix.modules.auth.models import RefreshToken
+from truvix.modules.auth.models import EmailVerificationToken, RefreshToken
 from truvix.modules.copilot.models import CopilotConversation, CopilotMessage, MessageRole
 from truvix.modules.notifications.models import (
     Notification,
@@ -56,6 +56,7 @@ __all__ = [
     "CopilotConversation",
     "CopilotMessage",
     "Currency",
+    "EmailVerificationToken",
     "Entitlement",
     "EntitlementStatus",
     "FindingCategory",

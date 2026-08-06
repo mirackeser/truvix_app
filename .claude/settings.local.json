@@ -109,7 +109,12 @@
       "Bash(xcodebuild -project Truvix.xcodeproj -scheme Truvix -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:TruvixTests/StoreKitDiagnostic)",
       "Bash(xcodebuild -project Truvix.xcodeproj -scheme Truvix -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:TruvixTests/SubscriptionModelTests)",
       "Bash(xcodebuild -project Truvix.xcodeproj -scheme Truvix -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:TruvixTests/LiveBackendTests)",
-      "Bash(cd \"/Users/mirackeser/Desktop/Truvix_app/apps/ios\" *)"
+      "Bash(cd \"/Users/mirackeser/Desktop/Truvix_app/apps/ios\" *)",
+      "Bash(psql -d truvix -c \"\\\\d email_verification_tokens\")",
+      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_email_verification.py -q)",
+      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest -q)",
+      "Bash(.venv/bin/python scripts/export_openapi.py)",
+      "Bash(git -C .. diff --stat docs/ apps/backend/docs/)"
     ]
   }
 }

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Self
 
@@ -105,21 +106,28 @@ def get_verifier(settings: SettingsDep) -> AppStoreVerifier:
         raise ServiceUnavailableError("Abonelik doğrulaması şu anda kullanılamıyor.")
 
     return AppStoreVerifier(
-        root_certificates=roots,
+        root_certificates=list(roots),
         expected_bundle_id=configuration.bundle_id,
         allow_sandbox=configuration.allow_sandbox,
     )
 
 
-def _load_roots(directory: Path) -> list[bytes]:
-    """Read every certificate shipped in the roots directory."""
+@lru_cache(maxsize=4)
+def _load_roots(directory: Path) -> tuple[bytes, ...]:
+    """Read every certificate shipped in the roots directory.
+
+    Cached because this sits behind an unauthenticated webhook: without it every
+    request would re-read and re-parse the roots from disk, which turns a flood
+    of forged notifications into a flood of file I/O. The roots change only when
+    the deployment is redeployed, and the process restarts for that.
+    """
     if not directory.is_dir():
-        return []
-    return [
+        return ()
+    return tuple(
         path.read_bytes()
         for path in sorted(directory.iterdir())
         if path.suffix.lower() in {".cer", ".der", ".pem", ".crt"}
-    ]
+    )
 
 
 VerifierDep = Annotated[AppStoreVerifier, Depends(get_verifier)]

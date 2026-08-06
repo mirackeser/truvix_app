@@ -80,6 +80,12 @@ class RefreshRequest(StrictRequest):
     refresh_token: Annotated[str, Field(min_length=1)]
 
 
+class VerifyEmailRequest(StrictRequest):
+    """The token carried by a verification link."""
+
+    token: Annotated[str, Field(min_length=16, max_length=256)]
+
+
 class LogoutRequest(StrictRequest):
     """Payload for ending a single session."""
 

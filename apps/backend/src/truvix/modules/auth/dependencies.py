@@ -10,6 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from truvix.modules.auth.journal import SecurityJournal
 from truvix.modules.auth.repository import RefreshTokenRepository
 from truvix.modules.auth.service import AuthService, SessionContext
+from truvix.modules.auth.verification import EmailVerificationService
 from truvix.modules.users.models import User
 from truvix.modules.users.repository import UserRepository
 from truvix.shared.dependencies import (
@@ -19,6 +20,7 @@ from truvix.shared.dependencies import (
     SettingsDep,
     TokenServiceDep,
 )
+from truvix.shared.email import build_email_sender
 from truvix.shared.errors import AuthenticationError, AuthorizationError
 from truvix.shared.ratelimit import client_identifier
 from truvix.shared.security import TokenType
@@ -72,6 +74,22 @@ def get_auth_service(
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
+
+def get_email_verification_service(
+    session: SessionDep, settings: SettingsDep
+) -> EmailVerificationService:
+    """Provide the email verification service for the current request."""
+    return EmailVerificationService(
+        session,
+        build_email_sender(settings.email),
+        settings.email,
+    )
+
+
+EmailVerificationServiceDep = Annotated[
+    EmailVerificationService, Depends(get_email_verification_service)
+]
 
 
 def get_session_context(request: Request) -> SessionContext:

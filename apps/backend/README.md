@@ -82,6 +82,24 @@ six are sent per run. Every stage degrades independently: a failed inspection
 still produces a report, and a failed reasoning step still keeps the visual
 findings.
 
+## Email
+
+Registration mails a verification link, and the profile screen can ask for
+another. The token is stored as a SHA-256 digest, never in the clear: a leaked
+database should not also hand over the ability to verify every address in it.
+Links are single use, expire after `TRUVIX_EMAIL_VERIFICATION_TTL_HOURS`, and
+issuing a new one invalidates the last, so a link that went astray can be
+cancelled by asking for another.
+
+An unknown link and an expired one are refused identically, so the refusal
+cannot be used to learn which tokens exist.
+
+Delivery is SMTP rather than a vendor SDK, so choosing a provider is a
+configuration change. With `TRUVIX_EMAIL_HOST` unset the application logs the
+message instead of sending it — development sees the link in the log and needs
+no mail server. A mail server that is down does not fail a registration: the
+account exists, and another link can be asked for.
+
 ## Subscriptions
 
 Premium is sold through In-App Purchase, because Apple's review guideline 3.1.1

@@ -1,4 +1,4 @@
-"""Persistence model for refresh token sessions.
+"""Persistence models for sessions and email verification.
 
 Each row is one issued refresh token, keyed by the ``jti`` embedded in the JWT.
 Rotation links tokens into a chain, which is what makes stolen-token detection
@@ -12,11 +12,11 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, text
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from truvix.shared.database import Base, TimestampMixin
+from truvix.shared.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from truvix.modules.users.models import User
@@ -85,3 +85,35 @@ class RefreshToken(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"RefreshToken(id={self.id!r}, user_id={self.user_id!r}, revoked={self.is_revoked})"
+
+
+TOKEN_HASH_LENGTH = 64
+
+
+class EmailVerificationToken(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """A one-time link proving somebody can read the address they signed up with.
+
+    The token is stored as a digest, never in the clear: a leaked database
+    should not also hand over the ability to verify every address in it.
+    """
+
+    __tablename__ = "email_verification_tokens"
+    __table_args__ = (
+        # The lookup on redemption is by digest, and only one token may exist
+        # per digest for a redemption to be unambiguous.
+        UniqueConstraint("token_hash", name="uq_email_verification_tokens_token_hash"),
+        # Issuing a new token deletes the account's old ones.
+        Index("ix_email_verification_tokens_user_id", "user_id"),
+        # The purge reads by expiry across all accounts.
+        Index("ix_email_verification_tokens_expires_at", "expires_at"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[str] = mapped_column(String(TOKEN_HASH_LENGTH), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    def __repr__(self) -> str:
+        # Deliberately omits the digest: a repr ends up in logs and tracebacks.
+        return f"EmailVerificationToken(user_id={self.user_id!r})"
