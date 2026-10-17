@@ -23,6 +23,7 @@ from truvix.shared.container import ApplicationContainer
 from truvix.shared.errors import register_exception_handlers
 from truvix.shared.logging import configure_logging, get_logger
 from truvix.shared.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
+from truvix.shared.transaction import TransactionMiddleware
 
 _logger = get_logger(__name__)
 
@@ -62,6 +63,10 @@ def _build_lifespan(settings: Settings) -> LifespanFactory:
 def _register_middleware(app: FastAPI, settings: Settings) -> None:
     """Attach middleware in the order responses should pass through it."""
     # Starlette applies middleware bottom-up, so the last registered runs first.
+    # Outermost of the application middlewares, so the transaction encloses
+    # everything that could write — including the exception handlers that turn
+    # a failure into a response.
+    app.add_middleware(TransactionMiddleware)
     app.add_middleware(SecurityHeadersMiddleware, settings=settings)
     app.add_middleware(RequestContextMiddleware, settings=settings.observability)
 

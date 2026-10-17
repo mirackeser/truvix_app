@@ -64,6 +64,34 @@ services:
     networks: [truvix]
     restart: unless-stopped
 
+  ai-service:
+    build:
+      context: ./apps/ai-service
+      dockerfile: Dockerfile
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      TRUVIX_AI_ENVIRONMENT: ${TRUVIX_AI_ENVIRONMENT:-development}
+      TRUVIX_AI_API_KEY: ${TRUVIX_AI_API_KEY:-}
+      TRUVIX_AI_MODEL: ${TRUVIX_AI_MODEL:-gpt-4o-mini}
+      TRUVIX_AI_LOG_FORMAT: ${TRUVIX_AI_LOG_FORMAT:-console}
+      TRUVIX_AI_CHROMA_HOST: chromadb
+      TRUVIX_AI_CHROMA_PORT: 8000
+    ports:
+      - "${AI_SERVICE_PORT:-8001}:8001"
+    networks: [truvix]
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    volumes:
+      - chroma-data:/chroma/chroma
+    ports:
+      - "${CHROMA_PORT:-8100}:8000"
+    networks: [truvix]
+    restart: unless-stopped
+
   # Runs migrations to completion and exits, so the API never starts against a
   # schema it does not expect. Run with: docker compose run --rm migrate
   migrate:
@@ -84,6 +112,7 @@ services:
 volumes:
   postgres-data:
   uploaded-files:
+  chroma-data:
 
 networks:
   truvix:

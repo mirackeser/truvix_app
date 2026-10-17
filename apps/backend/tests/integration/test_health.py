@@ -78,3 +78,75 @@ class TestSecurityHeaders:
         response = await client.get("/health/live")
 
         assert "strict-transport-security" not in response.headers
+
+
+class TestTransactionBoundary:
+    """The transaction has to close before the client is told anything."""
+
+    async def test_a_write_is_readable_immediately_afterwards(self, client: AsyncClient) -> None:
+        """The defect this guards was real, not theoretical.
+
+        With the transaction in a `yield` dependency, FastAPI committed it after
+        the response had been sent: running an analysis and immediately asking
+        for the notifications it produced missed them about one time in twelve.
+        """
+        registered = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "read-after-write@truvix.app",
+                "password": "a-sufficiently-long-passphrase",
+                "full_name": "Okuma Yazma",
+            },
+        )
+        assert registered.status_code == 201, registered.text
+        headers = {"Authorization": f"Bearer {registered.json()['tokens']['access_token']}"}
+
+        created = await client.post(
+            "/api/v1/vehicles",
+            json={
+                "make": "BMW",
+                "model": "320i",
+                "model_year": 2021,
+                "mileage_km": 67000,
+                "fuel_type": "petrol",
+                "transmission": "automatic",
+                "asking_price": "1250000.00",
+            },
+            headers=headers,
+        )
+        assert created.status_code == 201, created.text
+
+        listed = await client.get("/api/v1/vehicles?page=1&page_size=5", headers=headers)
+        assert listed.json()["total"] == 1
+
+    async def test_a_rejected_request_leaves_nothing_behind(self, client: AsyncClient) -> None:
+        """The exception became a response further in, so nothing propagates
+        to the middleware to trigger a rollback on its own — it has to notice
+        the status itself."""
+        registered = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "nothing-behind@truvix.app",
+                "password": "a-sufficiently-long-passphrase",
+                "full_name": "Geri Alma",
+            },
+        )
+        headers = {"Authorization": f"Bearer {registered.json()['tokens']['access_token']}"}
+
+        refused = await client.post(
+            "/api/v1/vehicles",
+            json={
+                "make": "",
+                "model": "",
+                "model_year": 1800,
+                "mileage_km": -5,
+                "fuel_type": "petrol",
+                "transmission": "automatic",
+                "asking_price": "0",
+            },
+            headers=headers,
+        )
+        assert refused.status_code == 422
+
+        listed = await client.get("/api/v1/vehicles?page=1&page_size=5", headers=headers)
+        assert listed.json()["total"] == 0

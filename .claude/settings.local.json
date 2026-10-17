@@ -139,7 +139,9 @@
       "Bash(psql -qtA -d truvix -c \"\\\\d device_tokens\")",
       "Bash(psql -d truvix -c \"\\\\d device_tokens\")",
       "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_push_notifications.py -q)",
-      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_push_notifications.py::TestRegistering::test_registering_twice_does_not_duplicate -q)"
+      "Bash(TRUVIX_RATELIMIT_ENABLED=false .venv/bin/pytest tests/integration/test_push_notifications.py::TestRegistering::test_registering_twice_does_not_duplicate -q)",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);print\\(' toplam:',d['total']\\)\")",
+      "Bash(xcodebuild -project Truvix.xcodeproj -scheme Truvix -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:TruvixTests/LiveAnalysisFlowTests)"
     ]
   }
 }

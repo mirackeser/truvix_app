@@ -1,0 +1,88 @@
+{
+  "uid": "truvix-overview",
+  "title": "Truvix Overview",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Request Rate",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "datasource": "Prometheus"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error Rate (5xx)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{status=~\"5..\"}[1m]) / rate(http_requests_total[1m])",
+          "datasource": "Prometheus"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "P95 Latency",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1m]))",
+          "datasource": "Prometheus"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "AI Tokens Used (Input vs Output)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(ai_tokens_used_total[1m])",
+          "datasource": "Prometheus"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Analysis Trust Score Distribution",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(ai_trust_score_bucket[1m])",
+          "datasource": "Prometheus"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Active Connections",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count",
+          "datasource": "Prometheus"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Usage",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes",
+          "datasource": "Prometheus"
+        }
+      ]
+    }
+  ]
+}

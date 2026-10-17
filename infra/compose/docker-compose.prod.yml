@@ -1,0 +1,184 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-truvix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-truvix}
+      POSTGRES_DB: ${POSTGRES_DB:-truvix}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-truvix} -d ${POSTGRES_DB:-truvix}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  backend:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TRUVIX_ENVIRONMENT: production
+      TRUVIX_DB_DSN: postgresql+asyncpg://${POSTGRES_USER:-truvix}:${POSTGRES_PASSWORD:-truvix}@postgres:5432/${POSTGRES_DB:-truvix}
+      TRUVIX_REDIS_DSN: redis://redis:6379/0
+      TRUVIX_SECURITY_SECRET_KEY: ${TRUVIX_SECURITY_SECRET_KEY:?set a signing key in .env}
+      TRUVIX_STORAGE_ROOT_DIR: /app/storage
+      TRUVIX_AI_API_KEY: ${TRUVIX_AI_API_KEY:-}
+      TRUVIX_OBS_LOG_FORMAT: json
+    volumes:
+      - uploaded-files:/app/storage
+    expose:
+      - "8000"
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  ai-service:
+    build:
+      context: ../../apps/ai-service
+      dockerfile: Dockerfile
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      TRUVIX_AI_ENVIRONMENT: production
+      TRUVIX_AI_API_KEY: ${TRUVIX_AI_API_KEY:?set an AI API key in .env}
+      TRUVIX_AI_MODEL: ${TRUVIX_AI_MODEL:-gpt-4o-mini}
+    expose:
+      - "8001"
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+
+  migrate:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TRUVIX_DB_DSN: postgresql+asyncpg://${POSTGRES_USER:-truvix}:${POSTGRES_PASSWORD:-truvix}@postgres:5432/${POSTGRES_DB:-truvix}
+      TRUVIX_REDIS_DSN: redis://redis:6379/0
+      TRUVIX_SECURITY_SECRET_KEY: ${TRUVIX_SECURITY_SECRET_KEY:?set a signing key in .env}
+    command: ["alembic", "upgrade", "head"]
+    networks: [truvix]
+    restart: "no"
+
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - backend
+      - ai-service
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+      - ai-service
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  chromadb:
+    image: chromadb/chroma:latest
+    expose:
+      - "8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    networks: [truvix]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+
+volumes:
+  postgres-data:
+  uploaded-files:
+  chroma-data:
+  grafana-data:
+
+networks:
+  truvix:
+    driver: bridge

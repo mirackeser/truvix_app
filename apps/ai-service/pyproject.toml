@@ -1,0 +1,38 @@
+[project]
+name = "truvix-ai-service"
+version = "0.1.0"
+description = "Truvix AI Service microservice"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]",
+    "httpx>=0.28",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.7",
+    "pillow>=12.3",
+    "structlog>=24.4",
+    "numpy>=2.2",
+]
+
+[project.optional-dependencies]
+vector = [
+    "chromadb>=1.0",
+    "sentence-transformers>=4.0"
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "ruff",
+    "mypy"
+]
+
+[project.scripts]
+start = "uvicorn truvix_ai.app:create_app --factory"
+
+[tool.ruff]
+line-length = 99
+target-version = "py314"
